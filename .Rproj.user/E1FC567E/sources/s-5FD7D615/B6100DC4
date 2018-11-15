@@ -5,15 +5,15 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "0",
+    "hash" : "2657522290",
     "id" : "B6100DC4",
-    "lastKnownWriteTime" : 1542223534,
-    "last_content_update" : 1542223534,
+    "lastKnownWriteTime" : 1542282324,
+    "last_content_update" : 1542282324682,
     "path" : "~/Documents/GitHub/website_aurele/_site.yml",
     "project_path" : "_site.yml",
     "properties" : {
-        "cursorPosition" : "17,16",
-        "scrollLine" : "2"
+        "cursorPosition" : "19,21",
+        "scrollLine" : "0"
     },
     "relative_order" : 1,
     "source_on_save" : false,

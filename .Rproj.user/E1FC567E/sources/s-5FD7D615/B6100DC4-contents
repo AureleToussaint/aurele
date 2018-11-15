@@ -3,7 +3,7 @@ output_dir: "."
 navbar:
   title: "Aurèle Toussaint"
   left:
-    - text: "R scripts"
+    - text: "Data & Scripts"
       href: software.html
   right:
     - icon: fa-envelope fa-lg
