@@ -5,15 +5,15 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "0",
+    "hash" : "782186596",
     "id" : "252A5D1B",
-    "lastKnownWriteTime" : 1542281294,
-    "last_content_update" : 1542281294,
+    "lastKnownWriteTime" : 1542281775,
+    "last_content_update" : 1542281775991,
     "path" : "~/Documents/GitHub/website_aurele/index.Rmd",
     "project_path" : "index.Rmd",
     "properties" : {
-        "cursorPosition" : "0,0",
-        "scrollLine" : "24"
+        "cursorPosition" : "27,501",
+        "scrollLine" : "21"
     },
     "relative_order" : 2,
     "source_on_save" : false,

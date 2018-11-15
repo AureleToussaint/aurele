@@ -25,7 +25,7 @@ The below publications represent my work to date. A full list of publications is
 
 ## 2018
 
-**Toussaint A.**, Charpin N., Beauchard O., Grenouillet G., Oberdorff T., Tedesco P.A., Villéger S. & Brosse S. Non-native species led to marked shifts in functional diversity of the world freshwater fish faunas. *Ecology Letters*, 21(11), 1649-1659. [pdf](data/2018_Toussaint_Ecolet.pdf), [press release](http://www.cnrs.fr/inee/communication/breves/b405.html) in french and [blog](https://ecolchange.wordpress.com/2018/10/11/new-publication-non-native-species-led-to-marked-shifts-in-functional-diversity-of-the-world-freshwater-fish-faunas/) in English. 
+**Toussaint A.**, Charpin N., Beauchard O., Grenouillet G., Oberdorff T., Tedesco P.A., Villéger S. & Brosse S. Non-native species led to marked shifts in functional diversity of the world freshwater fish faunas. *Ecology Letters*, 21(11), 1649-1659. [pdf](data/2018_Toussaint_Ecolet.pdf), [press release CNRS](http://www.cnrs.fr/inee/communication/breves/b405.html), [press release IRD](http://www.ird.fr/toute-l-actualite/actualites-scientifiques/la-biodiversite-des-poissons-d-eau-douce-bouleversee) in french and [blog](https://ecolchange.wordpress.com/2018/10/11/new-publication-non-native-species-led-to-marked-shifts-in-functional-diversity-of-the-world-freshwater-fish-faunas/) in English. 
 
 Kuczynski L., Côte J., **Toussaint A.**, Brosse S., Buisson L., Grenouillet G. Spatial mismatch in morphological, ecological and phylogenetic diversity, in historical and contemporary European freshwater fish faunas. *Ecography*, 41, 1665-1674. [pdf](data/2018_Kuczinski_et_al_Ecography.pdf)
 
