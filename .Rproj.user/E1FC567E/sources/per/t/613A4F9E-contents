@@ -1,0 +1,12 @@
+########################################################
+# Script R. v. 2018
+#   Useful functions for describing data 
+#
+#
+########################################################
+
+sumsub<-function(x,rawstart=1,rowend=10,colstart=1,colend=10){
+  z<-x[rawstart:rowend,colstart:colend]
+  return(z)
+}
+

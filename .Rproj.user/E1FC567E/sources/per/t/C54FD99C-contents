@@ -1,0 +1,35 @@
+library(readr)
+library(dplyr)
+
+setwd("/Users/aurele/Dropbox/seb")
+list.files()
+MSP88=as.matrix(read.table("MSP88.txt",h=T))
+rownames(MSP88)<-MSP88[,1]
+MSP88<-MSP88[,-1]
+MSP88<-t(MSP88)
+head(MSP88)
+
+MSP88 %>% head
+
+
+data("iris")
+iris %>%
+  group_by(Species) %>%
+  summarise(avg = mean(Sepal.Width) ) %>%
+  arrange(avg)
+
+mutate_each(iris, funs(min_rank))
+summarise_each(iris,funs(min_rank))
+
+dput(names(iris))
+
+library(questionr)
+iris <- rename.variable(iris, "Sepal.Length", "Sepal.L")
+
+nb_tours <- 1000
+p_b <- txtProgressBar(min = 1, max = nb_tours, style = 1)
+for(i in 1:nb_tours){
+  Sys.sleep(0.1)
+  setTxtProgressBar(p_b, i)
+}
+
