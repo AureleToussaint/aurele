@@ -13,7 +13,7 @@ output:
 
 I like to analyze data to answer research questions and test hypotheses. Currently I investigate questions related to global correlation between functional and taxonomic diversity of distant groups (fishes, plants and fungi) at [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecolofgy workgroup under the direction of [Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel). 
 
-I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I began working toward my PhD in macroecology as a PhD-student at [EDB-lab](www.edb.ups-tlse.fr), where I am investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](brosse.sebastien.free.fr) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
+I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I began working toward my PhD in macroecology as a PhD-student at [EDB-lab](www.edb.ups-tlse.fr), where I am investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr/) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
 
 I am a well-known R enthusiast, including performing graphics and data mining.
 
@@ -25,7 +25,7 @@ The below publications represent my work to date. A full list of publications is
 
 ## 2018
 
-**Toussaint A.**, Charpin N., Villéger S. & Brosse S. Non-native species led to marked shifts in functional diversity of the world freshwater fish faunas. *Ecology Letters*, 21(11), 1649-1659. [pdf](data/2018_Toussaint_Ecolet.pdf), [press release](http://www.cnrs.fr/inee/communication/breves/b405.html) in french and [blog](https://ecolchange.wordpress.com/2018/10/11/new-publication-non-native-species-led-to-marked-shifts-in-functional-diversity-of-the-world-freshwater-fish-faunas/) in English. 
+**Toussaint A.**, Charpin N., Beauchard O., Grenouillet G., Oberdorff T., Tedesco P.A., Villéger S. & Brosse S. Non-native species led to marked shifts in functional diversity of the world freshwater fish faunas. *Ecology Letters*, 21(11), 1649-1659. [pdf](data/2018_Toussaint_Ecolet.pdf), [press release](http://www.cnrs.fr/inee/communication/breves/b405.html) in french and [blog](https://ecolchange.wordpress.com/2018/10/11/new-publication-non-native-species-led-to-marked-shifts-in-functional-diversity-of-the-world-freshwater-fish-faunas/) in English. 
 
 Kuczynski L., Côte J., **Toussaint A.**, Brosse S., Buisson L., Grenouillet G. Spatial mismatch in morphological, ecological and phylogenetic diversity, in historical and contemporary European freshwater fish faunas. *Ecography*, 41, 1665-1674. [pdf](data/2018_Kuczinski_et_al_Ecography.pdf)
 
@@ -101,4 +101,4 @@ need to consider the functional diversity for understanding the impact of curren
 activities.
 These results contribute to the knowledge on the biodiversity of the richest vertebrate clade and
 therefore have implications in terms of biodiversity conservation and management of freshwater
-ecosystems.
+ecosystems. 
