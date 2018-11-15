@@ -1,0 +1,10 @@
+---
+---
+
+<link rel="stylesheet" href="styles.css" type="text/css">
+
+### Functional diversity R functions (Toussaint et al. Sci. Rep (2016))
+- [FDnull](data/FunctionR_FDnull.R): R function to compare the functional volume of a community based on functional traits to a random a random pool assemblage
+- [FDnullChge](data/FunctionR_FDnullChge.R): R function to compare the functional volume of a community based on functional traits to a random a random pool assemblage
+- [Funiq](data/FunctionR_Funiq.R): R function to compute and illustrate the proportion of the area (in 2dimensions) or volume of a taxonomic group not filled by any others species of the community
+- [Fvulne](data/FunctionR_Fvulne.R): R function to compute and illustrate the proportion of the area (in 2dimensions) or volume loss if all vulnerable species disapeared
