@@ -25,7 +25,7 @@ The below publications represent my work to date. A full list of publications is
 
 ## 2018
 
-**Toussaint A.**, Charpin N., Beauchard O., Grenouillet G., Oberdorff T., Tedesco P.A., Villéger S. & Brosse S. Non-native species led to marked shifts in functional diversity of the world freshwater fish faunas. *Ecology Letters*, 21(11), 1649-1659. [pdf](data/2018_Toussaint_Ecolet.pdf), [press release CNRS](http://www.cnrs.fr/inee/communication/breves/b405.html), [press release IRD](http://www.ird.fr/toute-l-actualite/actualites-scientifiques/la-biodiversite-des-poissons-d-eau-douce-bouleversee) in french and [blog](https://ecolchange.wordpress.com/2018/10/11/new-publication-non-native-species-led-to-marked-shifts-in-functional-diversity-of-the-world-freshwater-fish-faunas/) in English. 
+**Toussaint A.**, Charpin N., Beauchard O., Grenouillet G., Oberdorff T., Tedesco P.A., Villéger S. & Brosse S. Non-native species led to marked shifts in functional diversity of the world freshwater fish faunas. *Ecology Letters*, 21(11), 1649-1659. [pdf](data/2018_Toussaint_Ecolet.pdf), [press release CNRS](http://www.cnrs.fr/inee/communication/breves/b405.html), [press release IRD](http://www.ird.fr/toute-l-actualite/actualites-scientifiques/la-biodiversite-des-poissons-d-eau-douce-bouleversee) in french and [blog](https://ecolchange.wordpress.com/2018/10/11/new-publication-non-native-species-led-to-marked-shifts-in-functional-diversity-of-the-world-freshwater-fish-faunas/) in English. [Supplementary](data/ele13141-sup-0001-suppinfo.docx)
 
 Kuczynski L., Côte J., **Toussaint A.**, Brosse S., Buisson L., Grenouillet G. Spatial mismatch in morphological, ecological and phylogenetic diversity, in historical and contemporary European freshwater fish faunas. *Ecography*, 41, 1665-1674. [pdf](data/2018_Kuczinski_et_al_Ecography.pdf)
 
@@ -33,7 +33,7 @@ Tedersoo L., Laanisto L., Rahimlou S., **Toussaint A.**, Hallikma T., Pärtel M.
 
 ## 2016
 
-**Toussaint A.**, Charpin N., Brosse S. & Villéger S. Global functional diversity of freshwater fish is concentrated in the Neotropics. *Scientific Report*, 6, 22125. [pdf](data/2016_Toussaint_SciRep.pdf), [press release](http://www.cnrs.fr/inee/communication/breves/b178.html) in french and [radio show](https://www.franceinter.fr/emissions/la-tete-au-carre/la-tete-au-carre-11-avril-2016) (*La tête au carré*, France Inter, 11/04/2016) 
+**Toussaint A.**, Charpin N., Brosse S. & Villéger S. Global functional diversity of freshwater fish is concentrated in the Neotropics. *Scientific Report*, 6, 22125. [pdf](data/2016_Toussaint_SciRep.pdf), [press release](http://www.cnrs.fr/inee/communication/breves/b178.html) in french and [radio show](https://www.franceinter.fr/emissions/la-tete-au-carre/la-tete-au-carre-11-avril-2016) (*La tête au carré*, France Inter, 11/04/2016) [Supplementary](data/srep22125-s1.docx)
 
 **Toussaint A.**, Beauchard O., Oberdorff T., Brosse S. & Villeger S. Worldwide freshwater fish homogenization is driven by a few widespread non-native species. *Biological Invasions*, 18, 1295–1304. [pdf](2016_Toussaint_BiologicalInvasions.pdf)
 
@@ -44,7 +44,7 @@ Allard L., **Toussaint A.**, Vigouroux R. & Brosse S. Length-weight relationship
 
 ## 2014
 
-**Toussaint A.**, Beauchard O., Oberdorff T., Brosse S., Villéger S. Historical assemblage distinctiveness and the introduction of widespread non-native species explain worldwide changes in freshwater fish taxonomic dissimilarity. *Global Ecology and Biogeography*, 23, 574–584. [pdf](data/2014_Toussaint et al._GEB.pdf) and [press release](https://www.cnrs.fr/occitanie-ouest/CNRS-Hebdo/Actualites/18686/Suite.aspx)
+**Toussaint A.**, Beauchard O., Oberdorff T., Brosse S., Villéger S. Historical assemblage distinctiveness and the introduction of widespread non-native species explain worldwide changes in freshwater fish taxonomic dissimilarity. *Global Ecology and Biogeography*, 23, 574–584. [pdf](data/2014_Toussaint et al._GEB.pdf) and [press release](https://www.cnrs.fr/occitanie-ouest/CNRS-Hebdo/Actualites/18686/Suite.aspx) [Supplementary1](data/geb12141-sup-0001-si.doc); [Supplementary2](data/geb12141-sup-0002-si.doc)
 
 
 # Communication

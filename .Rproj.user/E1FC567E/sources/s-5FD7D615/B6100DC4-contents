@@ -5,6 +5,8 @@ navbar:
   left:
     - text: "Data & Scripts"
       href: software.html
+    - text: "Blog"
+      href: blog.html      
   right:
     - icon: fa-envelope fa-lg
       href: contact.html
