@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1542371572698.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2466417595",
+    "id" : "DC0084F9",
+    "lastKnownWriteTime" : 1542371678,
+    "last_content_update" : 1542371678787,
+    "path" : "~/Documents/GitHub/website_aurele/_site.yml",
+    "project_path" : "_site.yml",
+    "properties" : {
+        "cursorPosition" : "20,4",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "yaml"
+}

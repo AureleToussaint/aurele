@@ -15,7 +15,7 @@ I like to analyze data to answer research questions and test hypotheses. Current
 
 I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I began working toward my PhD in macroecology as a PhD-student at [EDB-lab](www.edb.ups-tlse.fr), where I am investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr/) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
 
-I am a well-known R enthusiast, including performing graphics and data mining.
+I am a well-known R enthusiast, including performing high levels graphics and data mining.
 
 My full CV is available [here](data/CV_Toussaint.pdf).
 
@@ -63,7 +63,7 @@ Allard L., **Toussaint A.**, Vigouroux R. & Brosse S. Length-weight relationship
 
 # PhD Dissertation
 
-During my PhD, I investigated functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](brosse.sebastien.free.fr) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/)
+During my PhD, I investigated functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/)
 
 My PhD dissertation is available [here](data/Toussaint_2016_These.pdf)  (in french only)
 
