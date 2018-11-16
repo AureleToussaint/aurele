@@ -7,11 +7,13 @@
     "folds" : "",
     "hash" : "1030291475",
     "id" : "745E8149",
-    "lastKnownWriteTime" : 1542216879,
-    "last_content_update" : 1542216879,
+    "lastKnownWriteTime" : 1542375814,
+    "last_content_update" : 1542375814373,
     "path" : "~/Documents/GitHub/website_aurele/contact.Rmd",
     "project_path" : "contact.Rmd",
     "properties" : {
+        "cursorPosition" : "10,31",
+        "scrollLine" : "0"
     },
     "relative_order" : 3,
     "source_on_save" : false,
