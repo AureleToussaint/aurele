@@ -1,6 +1,6 @@
 ---
 title: ""
-fontsize: 12pt
+fontsize: 14pt
 output:
   html_document: 
     toc: true
@@ -11,11 +11,26 @@ output:
 
 <img src="data/AT_pic.jpg" style="width:30%; border:5px solid; margin-right: 20px" align="right">
 
-I like to analyze data to answer research questions and test hypotheses. Currently I investigate questions related to global correlation between functional and taxonomic diversity of distant groups (fishes, plants and fungi) at [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecolofgy workgroup under the direction of [Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel). 
+# Research
+
+I like to analyze data to answer research questions and test hypotheses. Currently I investigate questions related to global correlation between functional and taxonomic diversity of distant groups (fishes, plants and fungi) at [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecology workgroup under the direction of [Pr. Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel). 
 
 I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I began working toward my PhD in macroecology as a PhD-student at [EDB-lab](www.edb.ups-tlse.fr), where I am investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr/) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
 
 I am a well-known R enthusiast, including performing high levels graphics and data mining.
+
+# Curriculum Vitae
+
+Current position: **Research Fellow** supported by *the Estonian Research Concil (MOBJD-276)*
+
+Institute of Ecology and Earth Sciences
+
+Departement of Botany 
+
+University of Tartu 
+
+Estonia
+
 
 My full CV is available [here](data/CV_Toussaint.pdf).
 
@@ -61,13 +76,13 @@ Allard L., **Toussaint A.**, Vigouroux R. & Brosse S. Length-weight relationship
 
 2013 8th Symposium for European freshwater sciences, Munster, Germany: *Historical assemblage distinctiveness and the introduction of widespread non-native species explain worldwide changes in freshwater fish taxonomic dissimilarity*
 
-# PhD Dissertation
+# PhD Thesis
 
-During my PhD, I investigated functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/)
+During my PhD, I investigated functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/).
 
-My PhD dissertation is available [here](data/Toussaint_2016_These.pdf)  (in french only)
+**Toussaint A.** 2016. Diversité fonctionnelle des poissons d'eau douce à l'échelle mondiale: patrons, déterminants et impacts des activité humaines. Université de Toulouse. 223p. [pdf](data/Toussaint_2016_These.pdf)  (in french only) 
 
-## Abstract
+## Detailed thesis abstract in English
 
 Biodiversity is often characterized only through its taxonomic facet, i.e. the number and list of species
 present in assemblages. However, recent studies show that biodiversity can not be summarized only by
