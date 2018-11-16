@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1542371289023.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "566EE36E",
+    "lastKnownWriteTime" : 1542284465,
+    "last_content_update" : 1542284465,
+    "path" : "~/Documents/GitHub/website_aurele/blog.Rmd",
+    "project_path" : "blog.Rmd",
+    "properties" : {
+        "cursorPosition" : "5,6",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}
