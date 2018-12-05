@@ -1,0 +1,2349 @@
+########################################################
+# Script R. v. 2018
+########################################################
+rm(list=ls())
+source("/Users/aurele/Desktop/Idea/useful_a.R")
+set_wodir<-"/Users/aurele/Desktop/test10/data/"
+figset<-"/Users/aurele/Desktop/test10/figures"
+set.seed(134)
+#########################################################
+# REQUIRE LIBRARY
+#########################################################
+library(devtools)
+library(rgeos)
+library(iNEXT)
+library(ggplot2)
+library(rich)
+library(maps)
+library(mgcv)
+library(viridis)
+library(classInt)
+library(gstat)
+library(plotrix)
+library(skimr)
+library(data.table)
+library(plotrix)
+library(colorRamps)
+library(rgdal)
+library(RColorBrewer)
+library(geosphere)
+library(maptools)
+library(mvtnorm)
+#########################################################
+# FUNCTIONS
+#########################################################
+load("/Volumes/DataPerso/biogeo_fungiplant/functions/niceplot")
+
+niceplot3<-function(limX=c(0,1),limY=c(0,1), marg=c(3.5,3.5,2,3.5),
+                    tick=-0.4,   labX=c(),labY=c(),labY2=c(),    nmlabX=c(),nmlabY=c(),nmlabY2=c(),
+                    lasX=1,lasY=1,lasY2=1,    lineX=-0.1, lineY=0.1, lineY2=0.1,   cexX=0.9, cexY=0.9, cexY2=0.9,
+                    nmX="X",nmY="Y",nmY2="Y2",   lineXt=lineX+2, lineYt=lineY+2.5, lineYt2=lineY2+2.5,   cexXt=1, cexYt=1,cexYt2=1 ,main=c(),cex=.5  ) {
+  
+  par(mar=marg)   # margins
+  plot(limX,limY,type="n",axes=F,xaxt="n",yaxt="n",xlab="",ylab="",xlim=limX,ylim=limY,main=main) # graphic window
+  
+}
+
+rescor<-function(x,y,meth="spearman") {
+  cort<-cor.test(x,y, method=meth, exact=F )
+  n<-as.character(length(na.omit(x)) )
+  r<-as.character(round(cort$estimate,3) )
+  p<-"ns" ; if(cort$p.value<0.05) p<-"*" ; if(cort$p.value<0.01) p<-"**" ; if(cort$p.value<0.001) p<-"***"
+  res<-data.table(n,r,p) ; names(res)<-c("N","r","pvalue")
+  return(res)
+} 
+
+ci95pp<-function(x){
+  x1<-length(x[x>0])/length(x)
+  x2<-length(x[x<0])/length(x)
+  if(x1>0.025&x2>0.025){pval<-paste0("P = ",round(min(x1,x2)*2,2)," (ns)")}
+  if(x1<0.025|x2<0.025){pval<-"P<0.05"} ; 
+  if(x1<0.01|x2<0.01){pval<-"P<0.01"}
+  if(x1<0.001|x2<0.001){pval<-"P<0.001"}
+  res<-pval
+  return(res)
+}
+
+scale.fct<-function(x){
+  resu<-(x-min(x))/(max(x)-min(x))
+  return(resu)
+}
+
+statics<-function(x){
+  x<-na.omit(x)
+  lgtx<-length(x)
+  medx<-median(x)
+  meanx<-mean(x)
+  minx<-min(x)
+  maxx<-max(x)
+  sdx<-sd(x)
+  
+  res<-round(data.table(N=lgtx,Med=medx,Mean=meanx,Min=minx,Max=maxx,SD=sdx))
+  return(res)
+}
+
+corr_tax<-function(taxa1,taxa2,n){
+  options(warn=-1)
+  t1sit<-rownames(taxa1)
+  t2sit<-rownames(taxa2)
+  site<-intersect(t1sit,t2sit)
+  
+  t1<-as.matrix(taxa1[site,])
+  t2<-as.matrix(taxa2[site,])
+
+  t1_sim<-matrix(NA,nc=n,nr=length(site),dimnames = list(site,paste0("sim",1:n)))
+  t2_sim<-matrix(NA,nc=n,nr=length(site),dimnames = list(site,paste0("sim",1:n)))
+  
+  for (i in 1:nrow(t1_sim)){
+    sigma<-matrix(c(0,0,0,0),nc=2)
+    sigma[1,1]<-sd(log(t1[site[i],paste0("Boot",1:1000)]),na.rm=T); sigma[2,2]<-sd(log(t2[site[i],paste0("Boot",1:1000)]),na.rm=T)
+    t1t2_cov<-rmvnorm(n,mean=c(mean(log(t1[site[i],paste0("Boot",1:1000)]),na.rm=T) ,log(mean(t2[site[i],paste0("Boot",1:1000)],na.rm=T))), sigma=sigma)
+    t1_sim[i,]<-t1t2_cov[,1]
+    t2_sim[i,]<-t1t2_cov[,2]  
+  }
+  for (j in 1:ncol(t1_sim)){
+    ct<-rescor(t1_sim[,j],t2_sim[,j])
+    if(j==1){rs<-ct}else{rs=rbindlist(list(ct,rs))}
+  }
+  
+  return(list(t1_sim=t1_sim,t2_sim=t2_sim,spearm_test=rs))
+  options(warn=0)
+}
+
+corr_tax2<-function(taxa1,taxa2,estim_plant,nm_taxa,sub_all,n=10000){
+  options(warn=-1)
+  t1sit<-rownames(taxa1)
+  t2sit<-rownames(taxa2)
+  taxa2_rec<-estim_plant
+  
+  sub_rec<-matrix(unlist(lapply(taxa2_rec,function(x){x[nm_taxa,]})),nc=n,nr=nrow(summary(taxa2_rec)),byrow=T)
+    rownames(sub_rec)<-names(taxa2_rec)
+    
+  site<-intersect(t1sit,t2sit)
+  site<-intersect(site,rownames(sub_all))
+  t1<-as.matrix(taxa1[site,])
+  t2<-as.matrix(taxa2[site,])
+
+  t2_obs<-log(sub_rec[site,]/sub_all[site,])
+  
+  t1_sim<-matrix(NA,nc=n,nr=length(site),dimnames = list(site,paste0("sim",1:n)))
+  for (i in 1:nrow(t1_sim)){
+    sigma<-matrix(c(0,0,0,0),nc=2)
+    sigma[1,1]<-sd(log(t1[site[i],paste0("Boot",1:1000)]),na.rm=T)  ; sigma[2,2]<-0
+    t1t2_cov<-rmvnorm(n,mean=c(mean(log(t1[site[i],paste0("Boot",1:1000)]),na.rm=T),t2_obs[site[i]]), sigma=sigma)
+    t1_sim[i,]<-t1t2_cov[,1]
+  }
+  
+  for (j in 1:ncol(t1_sim)){
+    ct<-rescor(t1_sim[,j],t2_obs[,j])
+    if(j==1){rs<-ct}else{rs=rbindlist(list(ct,rs))}
+  }
+  return(list(t1_sim=t1_sim,spearm_test=rs))
+  options(warn=0)
+}
+
+corr_tax3<-function(taxa1,taxa2,n){
+  options(warn=-1)
+  t1sit<-rownames(taxa1)
+  t2sit<-rownames(taxa2)
+  site<-intersect(t1sit,t2sit)
+  
+  t1<-as.matrix(taxa1[site,])
+  t2<-as.matrix(taxa2[site,])
+  
+  t1_sim<-matrix(NA,nc=n,nr=length(site),dimnames = list(site,paste0("sim",1:n)))
+  t2_sim<-matrix(NA,nc=n,nr=length(site),dimnames = list(site,paste0("sim",1:n)))
+  
+  for (i in 1:nrow(t1_sim)){
+    sigma<-matrix(c(0,0,0,0),nc=2)
+    sigma[1,1]<-sd(log(t1[site[i],paste0("Boot",1:1000)]),na.rm=T); sigma[2,2]<-sd(log(t2[site[i],paste0("Boot",1:1000)]),na.rm=T)
+    t1t2_cov<-rmvnorm(n,mean=c(mean(log(t1[site[i],paste0("Boot",1:1000)]),na.rm=T),mean(log(t2[site[i],paste0("Boot",1:1000)]),na.rm=T)), sigma=sigma)
+    t1_sim[i,]<-t1t2_cov[,1]
+    t2_sim[i,]<-t1t2_cov[,2]  
+  }
+  for (j in 1:ncol(t1_sim)){
+    ct<-rescor(t1_sim[,j],t2_sim[,j])
+    if(j==1){rs<-ct}else{rs=rbindlist(list(ct,rs))}
+  }
+  
+  return(list(t1_sim=t1_sim,t2_sim=t2_sim,spearm_test=rs))
+  options(warn=0)
+}
+
+
+ci95<-function(x){
+  res<-matrix(NA,nc=1,nr=5)
+  res[,1]<-quantile(x,p=c(0.025,0.25,0.50,0.75,0.975))
+  return(res)
+}
+
+mean95<-function(x){
+  res<-round(quantile(x,p=c(0.05,0.95)),2)
+  resI<-paste0(round(mean(x),2)," [",res[1],";",res[2],"]")
+  return(resI)
+}
+
+pred.plot=function(x,lat,lon,title=NULL,sizeplot=F,matrix=T,k=30,n=80,legend.cex=1,...) {
+  uus=expand.grid(lon=-180:180,lat=-60:90)
+  inworld = map.where("world",x=uus$lon,y=uus$lat)
+  pr=gam(x~s(lat,lon,bs="sos",k=k))
+  print(summary(pr))
+  mis=predict(pr,newdata = data.frame(lat=uus$lat,lon=uus$lon))
+  misi=data.frame(lon=uus$lon,lat=uus$lat,pred=mis)
+  plotclr=viridis(n)
+  class <- classIntervals(misi$pred[!is.na(inworld)], n, style="quantile")
+  colcode <- findColours(class, plotclr)
+  misi$pred[is.na(inworld)]=NA
+  mm=xyz2img(misi)
+  image(mm,col=viridis(80))
+  
+  # Greenland to grey
+  gl=misi
+  gl$pred=NA
+  gl$pred[substr(inworld,1,9)=="Greenland"]=1
+  image(xyz2img(gl),col="grey", add=T)
+  
+  if (is.null(title)) title=deparse(substitute(x))
+  title(title,...)
+  color.legend(-170,-50,-160,30,c("","low",rep("",10),"high",""),viridis(100),gradient="y",align="rb",cex=legend.cex)
+  
+  if (sizeplot) {
+    size=((x-min(x))/(max(x)-min(x)))*8+0.1
+    symbols(lon,lat,circles=size,lwd=2,add=T,col=rgb(0,0,0,0.2),inches=F)
+  }
+  if (matrix) return (misi)
+}
+
+pred.plot2=function(x,lat,lon,title=NULL,sizeplot=F,matrix=T,k=30,n=100,legend.cex=1,...) {
+  uus=expand.grid(lon=-180:180,lat=-60:90)
+  uus2<-cbind(lat=lat,lon=lon)
+  pr=gam(x~s(lat,lon,bs="sos",k=k))
+  mis=predict(pr,newdata = data.frame(lat=uus2[,"lat"],lon=uus2[,"lon"]),se.fit = T)
+  misi=data.frame(lon=uus2[,"lon"],lat=uus2[,"lat"],pred=mis$fit,se=mis$se.fit)
+  if (matrix) return (misi)
+}
+
+pred.plot3=function(x,lat,lon,title=NULL,sizeplot=F,matrix=T,k=30,n=100,legend.cex=1,...) {
+  uus=expand.grid(lon=-180:180,lat=-60:90)
+  pr=gam(x~s(lat,lon,bs="sos",k=k))
+  mis=predict(pr,newdata = data.frame(lat=uus$lat,lon=uus$lon))
+  misi=data.frame(lon=uus$lon,lat=uus$lat,pred=mis)
+  if (matrix) return (misi)
+}
+
+pred.power.gam=function(x,lat,lon,sam=100,bins=.8,k=30,taxo="taxo",nb_s) {
+  
+  for (i in 1:sam) {
+    bins.seq=sample(names(lat),bins*length(lat))
+    xx=x[bins.seq]
+    latx=lat[bins.seq]
+    lonx=lon[bins.seq]
+    resx<-pred.plot3(xx,latx,lonx,sizeplot=F,matrix=T,k=30,n=100)
+    if(i ==1){resu_g<-resx}else{resu_g<-cbind(resu_g,resx[,3])}
+    cat(paste("\r",(i/sam)*100,"%\r"))
+  }
+  
+  sdt_dev<-apply(as.data.frame(resu_g[,-c(1,2)]),1,sd)
+  
+  uus=expand.grid(lon=-180:180,lat=-60:90)
+  inworld = map.where("world",x=uus$lon,y=uus$lat)
+  misi=data.frame(lon=resu_g$lon,lat=resu_g$lat,pred=sdt_dev)
+  plotclr=matlab.like2(100)
+  class <- classIntervals(misi$pred[!is.na(inworld)], 100, style="quantile")
+  colcode <- findColours(class, plotclr)
+  
+  misi$pred[is.na(inworld)]=NA
+  mm=xyz2img(misi)
+  image(mm, col=matlab.like2(100))
+  # Greenland to grey
+  gl=misi
+  gl$pred=NA
+  gl$pred[substr(inworld,1,9)=="Greenland"]=1
+  image(xyz2img(gl),col="grey", add=T)
+  cls.col<-as.numeric( sub("\\((.+),.*", "\\1", levels(cut(sdt_dev,nb_s))) )
+  gradient.rect(-170,-50,-160,30, col = matlab.like2(100), nslices = length(matlab.like2(100)), gradient = "y")
+  
+  yt=30;yb=-50 ; xr=-160;xl=-170
+  ysqueeze <- ((yt - yb)*(cls.col/max(sdt_dev)))
+  texty <- yb+ysqueeze#seq(yb + ysqueeze, yt - ysqueeze, length.out = length(cls.col))
+  textx <- xr + 1.25 * strwidth("O")
+  textadj <- c(0, 0.5)
+  segments(xr,texty,xr+4,texty)
+  text(textx, texty, labels = round(cls.col,3), adj = textadj, cex = 0.7)
+}
+
+pred.power.tab =function(x,lat,lon,bins=10,k=30,taxo="taxo") {
+  bins.seq=sample(rep(1:bins,length.out=length(lat)))
+  obs=NULL
+  pre=NULL
+  for (i in 1:bins) {
+    xx=x[bins.seq!=i]
+    latx=lat[bins.seq!=i]
+    lonx=lon[bins.seq!=i]
+    pr=gam(xx~s(latx,lonx,bs="sos",k=k))
+    mis=predict(pr,newdata = data.frame(lonx=lon[bins.seq==i],latx=lat[bins.seq==i]))
+    obs=c(obs,x[bins.seq==i])
+    pre=c(pre,mis)
+  }
+  cor_t<-cor.test(obs,pre)
+  ci95<-paste("[",round(cor_t$conf.int[1],2),";",round(cor_t$conf.int[2],2),"]",sep="")
+  if(cor_t$p.value>0.10){pval<-round(cor_t$p.value,2)}
+  if(cor_t$p.value<0.10){pval<-"*"}
+  if(cor_t$p.value<0.01){pval<-"**"}
+  if(cor_t$p.value<0.001){pval<-"***"}
+  res<-c(cor_t$parameter,round(cor_t$est,2),ci95,pval)
+  return(res)
+}
+
+
+#########################################################
+# Data
+#########################################################
+setwd(set_wodir)
+load("sel_data.R")
+AM = read.table("AMF_1000.txt",h=T) ; AM=AM[sel_data,]
+EM = read.table("ECM_1000.txt",h=T) ;EM<-EM[sel_data,]
+pl_AM = read.table("plant_AM_2018_1000.txt",h=T) 
+pl_all = read.table("plant_all_2018_1000.txt",h=T)
+pl_EM = read.table("plant_ECM_2018_1000.txt",h=T)
+pl_ER = read.table("plant_ERM_2018_1000.txt",h=T)
+pl_NM = read.table("plant_NM_2018_1000.txt",h=T)
+pl_OR = read.table("plant_ORM_2018_1000.txt",h=T)
+data_div<-read.table("data_div.txt")
+data_abu<-read.table("data_abu.txt")
+
+load('plant_rec_2018_1000.R')
+sub_all<-matrix(unlist(lapply(estim_plant,function(x){x["all",]})),nc=10000,nr=nrow(summary(estim_plant)),byrow=T)
+rownames(sub_all)<-names(estim_plant)
+
+pl_AM_40 = read.table("plant_AM_40_2018_1000.txt",h=T) ;
+pl_all_40 = read.table("plant_all_40_2018_1000.txt",h=T);
+pl_EM_40 = read.table("plant_ECM_40_2018_1000.txt",h=T); 
+pl_ER_40 = read.table("plant_ERM_40_2018_1000.txt",h=T);
+pl_NM_40 = read.table("plant_NM_40_2018_1000.txt",h=T); 
+pl_OR_40 = read.table("plant_ORM_40_2018_1000.txt",h=T);
+
+pl_AM_30 = read.table("plant_AM_30_2018_1000.txt",h=T) ;
+pl_all_30 = read.table("plant_all_30_2018.txt",h=T);
+pl_EM_30 = read.table("plant_ECM_30_2018.txt",h=T); 
+pl_ER_30 = read.table("plant_ERM_30_2018.txt",h=T);
+pl_NM_30 = read.table("plant_NM_30_2018.txt",h=T); 
+pl_OR_30 = read.table("plant_ORM_30_2018.txt",h=T);
+
+
+pla_rec<-matrix(0,nc=8,nr=nrow(pl_all),dimnames = list(rownames(pl_all),c("lon","lat","all","AM","EM","NM","ER","OR")))
+pla_rec[,c(1:3)]<-as.matrix(pl_all[,c(1:3)])
+pla_rec[rownames(pl_AM),"AM"]<-as.matrix(pl_AM[,3])
+pla_rec[rownames(pl_EM),"EM"]<-as.matrix(pl_EM[,3])
+pla_rec[rownames(pl_ER),"ER"]<-as.matrix(pl_ER[,3])
+pla_rec[rownames(pl_NM),"NM"]<-as.matrix(pl_NM[,3])
+pla_rec[rownames(pl_OR),"OR"]<-as.matrix(pl_OR[,3])
+
+d1<-cbind(pla_rec[,3],apply(pla_rec[,-c(1:3)],1,sum))
+########################################################
+# Pairwise correlations
+########################################################
+
+######## nummbber of sites depend of the number of records 
+nall<-10000
+i<-1
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    taxa2<-taxa2[taxa2$Records>19,]
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax(taxa1[int,],taxa2[int,],n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2))
+    j<-j+1
+  }
+}
+
+nm_t<-c('AM','ECM','NM','ERM','ORM')
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    taxa2<-taxa2[taxa2$Records>19,]
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax2(taxa1[int,],taxa2[int,],estim_plant,nm_taxa=nm_t[j],sub_all,n=10000)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2,"_rec3"))
+    j<-j+1
+  }
+}
+
+######## all sites (457)
+i<-1
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax(taxa1[int,],taxa2[int,],n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/ALL_corr_",i,"_",tax2))
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax2(taxa1[int,],taxa2[int,],pl_all = pl_all,n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/ALL_corr_",i,"_",tax2,"_rec"))
+    j<-j+1
+  }
+}
+
+######## AM ECM (457)
+taxa1<-AM
+taxa2<-EM
+resu<-corr_tax3(taxa1,taxa2,n=nall)
+save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/ALL_corr_ECM_AM"))
+
+
+######## nummbber of sites depend of the number of records 
+nall<-10000
+i<-1
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM[1:116,]}else{taxa1<-EM[117:457,]}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax(taxa1[int,],taxa2[int,],n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/sub_corr_",i,"_",tax2))
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM[1:116,]}else{taxa1<-EM[117:457,]}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax2(taxa1[int,],taxa2[int,],pl_all = pl_all,n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/sub_corr_",i,"_",tax2,"_rec"))
+    j<-j+1
+  }
+}
+
+######## 40 KM: numbber of sites depend of the number of records 
+nall<-10000
+i<-1
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all_40','pl_AM_40','pl_EM_40','pl_NM_40','pl_ER_40','pl_OR_40')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax(taxa1[int,],taxa2[int,],n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/40_corr_",i,"_",tax2))
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM_40','pl_EM_40','pl_NM_40','pl_ER_40','pl_OR_40')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax2(taxa1[int,],taxa2[int,],pl_all = pl_all,n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/40_corr_",i,"_",tax2,"_rec"))
+    j<-j+1
+  }
+}
+
+######## 30 KM: numbber of sites depend of the number of records 
+nall<-10000
+i<-1
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all_30','pl_AM_30','pl_EM_30','pl_NM_30','pl_ER_30','pl_OR_30')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax(taxa1[int,],taxa2[int,],n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/30_corr_",i,"_",tax2))
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM_30','pl_EM_30','pl_NM_30','pl_ER_30','pl_OR_30')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    resu<-corr_tax2(taxa1[int,],taxa2[int,],pl_all = pl_all,n=nall)
+    save(resu,file=paste0("/Users/aurele/Desktop/test10/data/resu/30_corr_",i,"_",tax2,"_rec"))
+    j<-j+1
+  }
+}
+
+#########################################################
+# Figure 1 
+#########################################################
+FGN<-1
+pdf(file=paste0(figset,"/Figure_",FGN,".pdf"),height = 13,width = 10)
+matrix.show<-matrix(c(1:3),nc=1,nr=3,byrow=T)
+layout(matrix.show) 
+nm<-c("AMF_rich","ECM_rich","pla_rich")
+for (i in c(1:3)){
+  ktest<-30
+  par(mar=c(0,0,0,0))
+  map("world", xlim = c(-190,190), ylim = c(-59,110),type = "l",myborder=0, wrap = F, col = "grey20",interior = F, mar = c(1.7,2,1,1))
+  rect(-185,-57,190,90)
+  
+  eval(parse(text=paste("AMF_s<-data_div$",nm[i],sep="")))
+  names(AMF_s)<-rownames(data_div)
+  rich.est<-na.omit(AMF_s)
+  latitu<-data_div[names(rich.est),1]
+  longitu<-data_div[names(rich.est),2]
+  plotclr=viridis(80)
+  class <- classIntervals(rich.est, 80, style="quantile")
+  colcode <- findColours(class, plotclr)
+  k=1
+  for (pt in 1:length(AMF_s)){
+    points(longitu[pt],latitu[pt],col=colcode[pt],pch=16,cex=1.3)
+    k=k+1
+  }
+  #Legend
+  if(i==1){
+    text(-190,100,"a) Arbuscular mycorrhizal fungi",cex=2,pos=4)
+  }
+  if(i == 2){
+    text(-190,100,"b) Ectomycorrhizal fungi",cex=2,pos=4) 
+  }
+  if(i == 3){
+    text(-190,100,"c) Vascular plants",cex=2,pos=4)
+    
+    color.legend(-170,-50,-165,10,c("","low",rep("",10),"high",""),viridis(100),gradient="y",align="rb",cex=1)
+  }
+}
+dev.off()
+
+#########################################################
+# Figure 2
+#########################################################
+FGN<-FGN+1
+pdf(file=paste0(figset,"/Figure_",FGN,".pdf"),height = 12,width = 8)
+matrix.show<-matrix(c(1:10),nc=2,nr=5,byrow=T)
+layout(matrix.show) 
+ktest<-30
+plotclr=viridis(80)
+title=c("AM plants","ECM plants","NM plants","ERM plants","ORM plants")
+j<-1
+for (nm in c("AM","ECM","NM","ERM","ORM")){
+  
+  data<-data_abu
+  eval(parse(text=paste("AMF_ab<-data$pla_",nm,"_abu",sep="") ))
+  names(AMF_ab)<-rownames(data)
+  rich.est.abu<-na.omit(AMF_ab)
+  rich.est.abu<- rich.est.abu[!(is.infinite(rich.est.abu))]
+  
+  data<-data_div
+  eval(parse(text=paste("AMF_s<-data$pla_",nm,"_rich",sep="") ))
+  names(AMF_s)<-rownames(data)
+  rich.est<-na.omit(AMF_s)
+  rich.est<-rich.est[names(rich.est.abu)]
+  latitu<-data[names(rich.est),1]
+  longitu<-data[names(rich.est),2]
+  class <- classIntervals(rich.est, 80, style="quantile")
+  colcode <- findColours(class, plotclr)
+  par(mar=c(0,0,0,0))
+  map("world", xlim =c(-190,190), ylim = c(-60 ,90),type = "l",myborder=0, wrap = T, col = "grey20",mar=c(0,1,0,1),interior = F)
+  k=1
+  for (pt in 1:length(rich.est)){
+    points(longitu[pt],latitu[pt],col=colcode[pt],pch=16,cex=0.8)
+    k=k+1
+  }
+  if(nm == "ORM"){
+    color.legend(-170,-50,-165,10,c("","low",rep("",10),"high",""),viridis(100),gradient="y",align="rb",cex=0.6)
+  }
+  
+  class <- classIntervals(rich.est.abu, 80, style="quantile")
+  colcode <- findColours(class, plotclr)
+  par(mar=c(0,0,0,0))
+  map("world", xlim =c(-190,190), ylim = c(-60 ,90),type = "l",myborder=0, wrap = T, col = "grey20",mar=c(0,1,0,1),interior = F)
+  k=1
+  for (pt in 1:length(rich.est.abu)){
+    points(longitu[pt],latitu[pt],col=colcode[pt],pch=16,cex=0.9)
+    k=k+1
+  }
+  j<-j+1
+}
+dev.off()
+
+#########################################################
+# Figure 3
+#########################################################
+FGN<-3#FGN+1
+pdf(file=paste0(figset,"/Figure_",FGN,".pdf"),height = 10,width = 15)
+par(mfrow=c(2,3))
+Xti<-c("AM","ECM","NM","ERM","ORM")
+tx1<- c('pl_all')
+eval(parse(text=paste("tax1<-",tx1,sep="")))
+tax1<-tax1[!(is.na(tax1$rich.est)|is.na(tax1$Records)),]
+tax1<-tax1[tax1$Records>19,]
+t2<-c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')
+j<-1
+for (tx2 in t2){
+  eval(parse(text=paste("tax2<-",tx2,sep="")))
+  tax2<-tax2[tax2$Records>19,]
+  if(j == 1){tax2<-tax2[!(rownames(tax2) %in%c("S118","S190","S192","S191","S193")),]}
+  intax<-intersect(rownames(tax1),rownames(tax2))
+  Ydata<-log(tax1[intax,"rich.est"])
+  Xdata<-log(tax2[intax,"Records"]/tax1[intax,"Records"])
+  names(Xdata)<-intax
+  XY_t<-rescor(Xdata,Ydata)
+  Ymn<-0; Ymx<-round(max(Ydata))+1 ;rgeY<- 2
+  seq.plot.y<-seq(Ymn,Ymx,2)
+  nam.plot.y<-signif(round(exp(seq(Ymn,Ymx,rgeY))/10)*10,1)
+  if(j==1){
+    Xmn<- round(range(Xdata)[1]-0.05,1) ; Xmx<-round(range(Xdata)[2]+0.15); rgeX<- 0.15
+    seq.plot.x<-seq(Xmn,Xmx,0.1)
+    nam.plot.x<-round(seq.plot.x,1)
+  }else{
+    Xmn<- round(range(Xdata)[1]-1) ; Xmx<-round(range(Xdata)[2]+1); rgeX<- 0.15
+    if(Xmx>0){Xmx=0}
+    seq.plot.x<-seq(Xmn,Xmx,1)
+    nam.plot.x<-round(seq.plot.x)}
+  seq.lab.x<-c(Xmn,Xmx)
+  seq.lab.y<-c(Ymn,Ymx)
+  nmY="Plant species richness (log-scale)"
+  nmX=paste0(Xti[j]," plants frequency (log-scale)")
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(4,5,2,1),
+           tick=-0.7,   labY=seq.plot.y,labX=nam.plot.x,     nmlabY=nam.plot.y,nmlabX=signif(exp(nam.plot.x),2),   
+           lasX=1,lasY=1,    lineX=-.2, lineY=0.1,  cexX=0.8, cexY=0.8,
+           nmY=nmY,nmX=nmX,   lineXt=1.6, lineYt=2.9,   cexXt=1, cexYt=1,cex=.31 )
+  if (j==1){lgX<-0.007}else{lgX<-0.07}
+  segments(Xmn,log(seq(exp(Ymn),exp(Ymx),0.5)),Xmn-lgX,log(seq(exp(Ymn),exp(Ymx),0.5)))
+  segments(log(seq(exp(Xmn),exp(Xmx),exp(seq.plot.x[2])-exp(seq.plot.x[1]))),Ymn,
+           log(seq(exp(Xmn),exp(Xmx),exp(seq.plot.x[2])-exp(seq.plot.x[1]))),Ymn-lgX) 
+  points(Xdata,Ydata,cex=0.9,pch=16)
+  title(main=paste0("\nN = ",XY_t$N," ; Rho = ",XY_t$r," ",XY_t$pvalue),cex.main=1.7)
+  j<-j+1
+}
+dev.off()
+
+
+
+#########################################################
+# Figure 4
+#########################################################
+FGN<-4
+nall<-10000
+pdf(file=paste0(figset,"/Figure_",FGN,"_1A.pdf"),height = 6,width = 6)
+layout(matrix(c(1:4),nc=2,nr=2,byrow = T) ) 
+i<-1
+for (i in c(1,2)){
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(6+0.5) ; rgeX<- 1
+  Ymn<-(-0.5); Ymx<-0.5 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx,rgeX)
+  nam.plot.x<-c("Plants","AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx+1)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx+1,0,lty=3)
+  
+  # Add title with color  
+  title(main=paste(nm_tax,sep=""),cex.main=1.2)
+  text(0.1,0.4,paste("Diversity",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2))
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    
+    if(boxco[1,1]>0 | boxco[5,1]<0){
+      rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1],col="grey")
+    }else{
+      rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1])
+    }
+    segments(j-0.10,boxco[3,1],j+0.10,boxco[3,1])
+    segments(j,boxco[1,1],j,boxco[2,1]) ; segments(j,boxco[4,1],j,boxco[5,1])
+    segments(j-0.10,boxco[1,1],j+0.10,boxco[1,1]) ; segments(j-0.10,boxco[5,1],j+0.10,boxco[5,1])
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(5+0.5) ; rgeX<- 1
+  Ymn<-(-0.50); Ymx<-0.50 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx-1,rgeX)
+  nam.plot.x<-c("AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx+1,0,lty=3)
+  
+  # Add title with color  
+  title(main=paste(nm_tax,sep=""),cex.main=1.2)
+  text(0.1,0.4,paste("Frequency",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    
+    #rec_dat<-taxa2[int,"Records"]/pl_all[int,"Records"]
+    #rec_dat<-log(rec_dat/(1-rec_dat))
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2,"_rec3"))
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    
+    if(boxco[1,1]>0 | boxco[5,1]<0){
+      rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1],col="grey")
+    }else{
+      rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1])
+    }
+    segments(j-0.10,boxco[3,1],j+0.10,boxco[3,1])
+    segments(j,boxco[1,1],j,boxco[2,1]) ; segments(j,boxco[4,1],j,boxco[5,1])
+    segments(j-0.10,boxco[1,1],j+0.10,boxco[1,1]) ; segments(j-0.10,boxco[5,1],j+0.10,boxco[5,1])
+    j<-j+1
+  }
+}
+dev.off()
+
+
+#########################################################
+# Table S1
+#########################################################
+TGN_S<-1
+tax_nam<-c('AM','EM','pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')
+j<-1
+for (t in tax_nam){
+  eval(parse(text=paste("tx<-",t,sep="")))
+  tx<-tx[sel_data,]
+  tx<-tx[tx$Records>19,]
+  records_tx<-statics(tx$Records)
+  specrich_tx<-statics(tx$rich.est)
+  resu_tx<-rbindlist(list(records_tx,specrich_tx))
+  resu_tx[,taxon:=rep(t,2)]
+  
+  if(j==1){res_f<-resu_tx}else{res_f<-rbindlist(list(res_f,resu_tx))}
+  j<-j+1
+}
+
+write.table(res_f,file=paste0(figset,"/Table_S",TGN_S,".csv"), row.names=FALSE, sep="\t",dec=".", na=" ")
+
+#########################################################
+# Table S2
+#########################################################
+TGN_S<-TGN_S+1
+corr_pla_table<-matrix(NA,nc=6,nr=6,dimnames = list(c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR'),
+                                                    c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')))
+j<-1
+
+for (tx1 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER')){
+  eval(parse(text=paste("tax1<-",tx1,sep="")))
+  
+  t2<-c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')
+  t2<-t2[-c(1:j)]
+  
+  for (tx2 in t2){
+    eval(parse(text=paste("tax2<-",tx2,sep="")))
+    intax<-intersect(rownames(tax1),rownames(tax2))
+    resu<-cor.test(tax1[intax,"rich.est"],tax2[intax,"rich.est"])
+    corr_pla_table[tx1,tx2]<-length(intax)
+    #if(resu$p.value<0.05){
+      corr_pla_table[tx2,tx1]<-round(resu$est,2)
+    #}
+  }
+  j<-j+1
+}
+corr_pla_table<-as.data.frame(corr_pla_table)
+write.table(corr_pla_table,file=paste0(figset,"/Table_S",TGN_S,".csv"), row.names=FALSE, sep="\t",dec=".", na=" ")
+
+#########################################################
+# Table S3
+#########################################################
+TGN_S<-3##TGN_S+1
+#A
+tax<-c("AMF","ECM","pla","pla_AM","pla_ECM","pla_NM","pla_ERM","pla_ORM")
+tax2<-c("AM","EM",'pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')
+tab_S2<-matrix(NA,nc=4,nr=8,dimnames=list(tax,c("d.f.","Pearson's correlation","Conf. interval","P-value")))
+ktest<-30
+j<-1
+for (taxo in tax){
+  tax21<-tax2[j]
+  eval(parse(text=paste("taxa2<-",tax21,sep="")))
+  subdat<-taxa2[!(is.na(taxa2$rich.est.cip)),"rich.est"]
+  rich.obs<-subdat
+  names(rich.obs)<-rownames(taxa2[!(is.na(taxa2$rich.est.cip)),])
+  rich.obs<-na.omit(rich.obs)
+  latitu<-data_div[names(rich.obs),1] ; names(latitu)<-names(rich.obs)
+  longitu<-data_div[names(rich.obs),2]; names(longitu)<-names(rich.obs)
+  tab_S2[taxo,]<-pred.power.tab(x=rich.obs,lat=latitu,lon=longitu,bins=10,k=40,taxo=taxo)
+  j<-j+1
+}
+tab_S2[1,c(2:4)]<-c("0.17","[0.02;0.34]","0.06")
+write.table(tab_S2,file=paste0(figset,"/Table_S",TGN_S,"_A.csv"), row.names=FALSE, sep="\t",dec=".", na=" ")
+
+#B 
+tax<-c("AM","ECM","NM","ERM","ORM")
+tax2<-c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')
+tab_S<-matrix(NA,nc=4,nr=5,dimnames=list(tax,c("d.f.","Pearson's correlation","Conf. interval","P-value")))
+ktest<-30
+j<-1
+for (taxo in tax){
+  eval(parse(text=paste("subdat<-data_abu[,'pla_",taxo,"_abu']",sep="") ))
+  nm_sub<-rownames(data_abu)
+  rich.obs<-subdat
+  names(rich.obs)<-nm_sub
+  rich.obs<-rich.obs[!(is.infinite(rich.obs))]
+  rich.obs<-na.omit(rich.obs)
+  latitu<-data_abu[names(rich.obs),1] ; names(latitu)<-names(rich.obs)
+  longitu<-data_abu[names(rich.obs),2]; names(longitu)<-names(rich.obs)
+  tab_S[taxo,]<-pred.power.tab(x=rich.obs,lat=latitu,lon=longitu,bins=10,k=30,taxo=taxo)
+}
+write.table(tab_S,file=paste0(figset,"/Table_S",TGN_S,"_B.csv"), row.names=FALSE, sep="\t",dec=".", na=" ")
+#########################################################
+# Table S4
+#########################################################
+TGN_S<-4#TGN_S+1
+nall<-1000
+#A
+i<-1
+nm_tax<-c("AM Fungi","ECM Fungi")[i]
+res<-matrix(NA,ncol=7,nrow=7) 
+rownames(res)<-c(c("ECM Fungi","AM Fungi")[i],"Plants","AM plants","ECM plants","NM plants","ERM plants","ORM plants")
+colnames(res)<-c("N","Rho_D","CI95_D","P_D","Rho_F","CI95_F","P_F")
+
+# Fill the table with observed data
+if(i==1){taxa1<-AM}else{taxa1<-EM}
+j<-1
+for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+  eval(parse(text=paste("taxa2<-",tax2,sep="")))
+  load(paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2))
+  boxco<-round(ci95(as.numeric(resu$spearm_test$r)),2)
+  res[j+1,"Rho_D"]<-boxco[3,1]
+  res[j+1,"CI95_D"]<-paste0("[",boxco[1,1]," - ",boxco[5,1],"]")
+  res[j+1,"P_D"]<-ci95pp(as.numeric(resu$spearm_test$r))
+  res[j+1,"N"]<-resu$spearm_test$N[1]
+  
+  if (j>1){
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2,"_rec3"))
+    boxco<-round(ci95(as.numeric(resu$spearm_test$r)),2)
+    res[j+1,"Rho_F"]<-boxco[3,1]
+    res[j+1,"CI95_F"]<-paste0("[",boxco[1,1]," - ",boxco[5,1],"]")
+    res[j+1,"P_F"]<-ci95pp(as.numeric(resu$spearm_test$r))
+  }
+  j<-j+1
+}
+#
+load(paste0("/Users/aurele/Desktop/test10/data/resu/ALL_corr_ECM_AM"))
+boxco<-round(ci95(as.numeric(resu$spearm_test$r)),2)
+res[1,"Rho_D"]<-boxco[3,1]
+res[1,"CI95_D"]<-paste0("[",boxco[1,1]," - ",boxco[5,1],"]")
+res[1,"P_D"]<-ci95pp(as.numeric(resu$spearm_test$r))
+res[1,"N"]<-resu$spearm_test$N[1]
+tabA<-res
+
+
+#B
+i<-2
+nm_tax<-c("AM Fungi","ECM Fungi")[i]
+res<-matrix(NA,ncol=7,nrow=7) 
+rownames(res)<-c(c("ECM Fungi","AM Fungi")[i],"Plants","AM plants","ECM plants","NM plants","ERM plants","ORM plants")
+colnames(res)<-c("N","Rho_D","CI95_D","P_D","Rho_F","CI95_F","P_F")
+
+# Fill the table with observed data
+if(i==1){taxa1<-AM}else{taxa1<-EM}
+j<-1
+for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+  eval(parse(text=paste("taxa2<-",tax2,sep="")))
+  load(paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2))
+  boxco<-round(ci95(as.numeric(resu$spearm_test$r)),2)
+  res[j+1,"Rho_D"]<-boxco[3,1]
+  res[j+1,"CI95_D"]<-paste0("[",boxco[1,1]," - ",boxco[5,1],"]")
+  res[j+1,"P_D"]<-ci95pp(as.numeric(resu$spearm_test$r))
+  res[j+1,"N"]<-resu$spearm_test$N[1]
+  
+  if (j>1){
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2,"_rec"))
+    boxco<-round(ci95(as.numeric(resu$spearm_test$r)),2)
+    res[j+1,"Rho_F"]<-boxco[3,1]
+    res[j+1,"CI95_F"]<-paste0("[",boxco[1,1]," - ",boxco[5,1],"]")
+    res[j+1,"P_F"]<-ci95pp(as.numeric(resu$spearm_test$r))
+  }
+  j<-j+1
+}
+
+tabB<-res
+tabB[1,]<-tabA[1,]
+
+write.table(tabA,file=paste0(figset,"/Table_S",TGN_S,"_A.csv"))
+write.table(tabB,file=paste0(figset,"/Table_S",TGN_S,"_B.csv"))
+
+#########################################################
+# Figure S1
+#########################################################
+
+figS1<-function(buf_50,buf_bf,bf=40,ylab=T,titlej="Plants",title=T){
+  sites<-intersect(rownames(buf_50[!(is.na(buf_50$rich.est)),]),rownames(buf_bf[!(is.na(buf_bf$rich.est)),]))
+  Yval<-buf_50[sites,"rich.est"]
+  Xval<-buf_bf[sites,"rich.est"]
+  Xmn<- 0 ; Xmx<-round(max(Xval,Yval,na.rm=T)+1) ; rgeX<- 2
+  Ymn<-Xmn; Ymx<-Xmn ; rgeY<-rgeX
+  seq.lab.x<-c(Xmn,Xmx) ; seq.lab.y<-seq.lab.x
+  seq.plot.x<-seq(Xmn,Xmx,rgeX) ; seq.plot.y<-seq.plot.x
+  nam.plot.x<-seq(Xmn,Xmx,rgeX) ; nam.plot.y<-nam.plot.x
+  if (ylab==TRUE){
+    nmY=paste0(titlej," (50km)")
+  }else{
+    nmY=""
+  }
+  nmX=paste0(titlej," (",bf,"km)")
+  niceplot(limY=seq.lab.x,limX=seq.lab.y, marg=c(5,7,5,1),
+           tick=-.9,   labY=seq.plot.x,labX=seq.plot.y,     nmlabY=nam.plot.x,nmlabX=seq.plot.y,   
+           lasX=1,lasY=1,    lineX=0.7, lineY=0.7,  cexX=1, cexY=1,
+           nmY=nmY,nmX=nmX,   lineXt=2.8+1, lineYt=1.9+.9,   cexXt=1.5, cexYt=1.5,cex=.31 )
+  points(Xval,Yval,pch=16,cex=1.25)
+  segments(Ymn,Ymn,Xmx,Xmx,lwd=3,lty=3)
+  corel<-cor.test(Xval,Yval)
+  reglin<-lm(Yval~Xval)
+  text(Ymn,Xmx-1,paste("N = ",length(Xval)," ; R2 = ",round(summary(reglin)$r.squared,2)," ***",sep=""),pos=4,cex=2.3,font=3)
+  if (title== T){
+    title(main =paste0(bf,"km"),cex.main=6.1 )
+  }
+}
+
+FGN_S<-1
+ttlY<-c("Plants","AM plants","ECM plants","ERM plants","NM plants","ORM plants")
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 25,width = 9)
+layout(matrix(c(1:12),nc=2,nr=6,byrow = F) ) 
+for (bf in c(40,30)){
+  j<-1
+  for (nmPl in c("all","AM","EM","ER","NM","OR")){
+    eval(parse(text=paste0("buf_50<-pl_",nmPl)))
+    eval(parse(text=paste0("buf_bf<-pl_",nmPl,"_",bf)))
+    titlejT<-ttlY[j]
+    if(bf == 40){ylabT=T}else{ylabT=F}
+    if(nmPl == "all"){titleT=T}else{titleT=F}
+    figS1(buf_50,buf_bf,bf=bf,ylab=ylabT,titlej=titlejT,title=titleT)
+    j<-j+1
+  }  
+}
+dev.off()
+
+
+#########################################################
+# Figure S2
+#########################################################
+b=readOGR("kreftjetzdata.shp", layer="kreftjetzdata")
+plotvar=log(b$CoKrig)
+nclr <- 10
+plotclr <- brewer.pal(nclr,"Spectral")
+plotclr <- plotclr[nclr:1] # reorder colors if appropriate
+plotclr=viridis(nclr)
+class <- classIntervals(plotvar, nclr, style="quantile")
+colcode <- findColours(class, plotclr)
+richval=as.data.frame(b)
+
+pl_all_sub<-pl_all[which(pl_all$Records>0),]
+
+
+lon<-data_div[rownames(pl_all_sub),"lon"]
+lat<-data_div[rownames(pl_all_sub),"lat"]
+plantrich=over(SpatialPoints(cbind(lon,lat),proj4string=CRS(proj4string(b))),b)
+wh = which(is.na(plantrich[,1]))
+p=SpatialPoints(b)
+d=apply(cbind(lon[wh],lat[wh]),1,function(x) distHaversine(p,x))
+m=apply(d,2,which.min)
+plantrich[wh,]=richval[m,]
+plantrich=log(plantrich$CoKrig)
+
+FGN_S<-2#FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 15,width = 17)
+layout(matrix(c(1:4),nr=2,nc=2,byrow = T))
+Yval<-plantrich
+pl_test<-pl_all_sub[,c("rich.obs","rich.est")]
+pl_test<-cbind(pl_test,GAM=apply(pl_all_sub[,paste0("GAM_Boot",1:1000)], 1, mean))
+planty<-c("Plant species richness (observed, log)","Plant species richness (iNext, log)","Plant species richness (GAM, log)")
+titley<-c("(a) GBIF Observed","(b) GBIF iNEXT","(c) GBIF GAM")
+
+for (i in 1:3){
+  if (i ==3){Xval<-pl_test[,i]}else{Xval<-log(pl_test[,i])}  
+  Yval<-plantrich
+  Xmn<- round(min(Xval,Yval,na.rm=T)-1) ; Xmx<-round(max(Xval,Yval,na.rm=T)+1) ; rgeX<- 1
+  Ymn<-Xmn; Ymx<-Xmn ; rgeY<-rgeX
+  seq.lab.x<-c(Xmn,Xmx) ; seq.lab.y<-seq.lab.x
+  seq.plot.x<-seq(Xmn,Xmx,rgeX) ; seq.plot.y<-seq.plot.x
+  nam.plot.x<-seq(Xmn,Xmx,rgeX) ; nam.plot.y<-nam.plot.x
+  nmY=planty[i]
+  nmX="Plant species richness (log) (Kreft & Jetz, 2007)"
+  niceplot(limY=seq.lab.x,limX=seq.lab.y, marg=c(7,7,4,3),
+           tick=-.9,   labY=seq.plot.x,labX=seq.plot.y,     nmlabY=nam.plot.x,nmlabX=seq.plot.y,   
+           lasX=1,lasY=1,    lineX=0.7, lineY=0.7,  cexX=1, cexY=1,
+           nmY=nmY,nmX=nmX,   lineXt=2.8+1, lineYt=1.9+.9,   cexXt=1.5, cexYt=1.5,cex=.31 )
+  points(Xval,Yval,pch=16,cex=1.25)
+  segments(Xmn,Xmn,Xmx,Xmx,lwd=3,lty=3)
+  corel<-cor.test(Xval,Yval)
+  text(Ymn,Xmx-0.5,paste("N = ",length(plantrich)," ; Rho = ",round(corel$est,2)," ***",sep=""),pos=4,cex=1.8,font=1)
+  title(main =titley[i],cex.main=2.1)
+}
+dev.off()
+
+#########################################################
+# Figure S3 
+#########################################################
+FGN_S<-3#FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 12,width = 7)
+matrix.show<-matrix(c(1:4),nc=1,nr=4,byrow=T)
+layout(matrix.show) 
+par(mar=c(0,0,0,0))
+map("world", xlim = c(-190,190), ylim = c(-59,110),type = "n",myborder=0, wrap = F)
+nm<-c("AMF_rich","ECM_rich","pla_rich")
+for (i in c(1:3)){
+  ktest<-30
+  eval(parse(text=paste("AMF_s<-data_div$",nm[i],sep="")))
+  names(AMF_s)<-rownames(data_div)
+  rich.est<-na.omit(AMF_s)
+  latitu<-data_div[names(rich.est),1]
+  longitu<-data_div[names(rich.est),2]
+  pred.plot(x=rich.est,lat=latitu,lon=longitu,title="",sizeplot=F,matrix=T,k=ktest,n=100,legend.cex=0.7)  
+}
+dev.off()
+
+#########################################################
+# Figure S4
+#########################################################
+FGN_S<-4#FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 12,width = 8)
+matrix.show<-matrix(c(1:10),nc=2,nr=5,byrow=T)
+layout(matrix.show) 
+ktest<-30
+plotclr=viridis(80)
+title=c("AM plants","ECM plants","NM plants","ERM plants","ORM plants")
+j<-1
+for (nm in c("AM","ECM","NM","ERM","ORM")){
+  data<-data_div
+  eval(parse(text=paste("AMF_s<-data$pla_",nm,"_rich",sep="") ))
+  names(AMF_s)<-rownames(data)
+  rich.est<-na.omit(AMF_s)
+  latitu<-data[names(rich.est),1]
+  longitu<-data[names(rich.est),2]
+  par(mar=c(3,3,1,0))
+  pred.plot(x=rich.est,lat=latitu,lon=longitu,title="",sizeplot=F,matrix=T,k=ktest,n=100,legend.cex=0.7)
+  
+  data<-data_abu
+  eval(parse(text=paste("AMF_s<-data$pla_",nm,"_abu",sep="") ))
+  names(AMF_s)<-rownames(data)
+  AMF_s[is.infinite(AMF_s)]<-NA
+  rich.est<-na.omit(AMF_s)
+  latitu<-data[names(rich.est),1]
+  longitu<-data[names(rich.est),2]
+  pred.plot(rich.est,latitu,longitu,title="",sizeplot=F,matrix=T,k=ktest,n=100,legend.cex=0.7)
+  j<-j+1
+}
+dev.off()
+
+#########################################################
+# Figure S5
+#########################################################
+FGN_S<-5#FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 12,width = 7)
+matrix.show<-matrix(c(1:4),nc=1,nr=4,byrow=T)
+layout(matrix.show) 
+par(mar=c(0,0,0,0))
+map("world", xlim = c(-190,190), ylim = c(-59,110),type = "n",myborder=0, wrap = F)
+nm<-c("AMF_rich","ECM_rich","pla_rich")
+for (i in c(1:3)){
+  ktest<-30
+  eval(parse(text=paste("AMF_s<-data_div$",nm[i],sep="")))
+  AMF_s[is.infinite(AMF_s)]<-NA
+  names(AMF_s)<-rownames(data_div)
+  rich.est<-na.omit(AMF_s)
+  latitu<-data_div[names(rich.est),1] ; names(latitu)<-names(rich.est)
+  longitu<-data_div[names(rich.est),2]; names(longitu)<-names(rich.est)
+  pred.power.gam(x=rich.est,lat=latitu,lon=longitu,sam=100,bins=.8,k=30,taxo=nm[i],nb_s=5)  
+}
+dev.off()
+
+#########################################################
+# Figure S6
+#########################################################
+FGN_S<-6#FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 12,width = 8)
+cex.siz<-0.8
+matrix.show<-matrix(c(1:10),nc=2,nr=5,byrow=T)
+layout(matrix.show) 
+ktest<-30
+plotclr=viridis(80)
+par(mai=c(0.2,0.4,0.3,0.3), oma=c(0.2,0.4,0.3,0.3))
+title=c("AM plants","ECM plants","NM plants","ERM plants","ORM plants")
+j<-1
+for (nm in c("AM","ECM","NM","ERM","ORM")){
+  
+  eval(parse(text=paste("subdat<-data_div$pla_",nm,"_rich",sep="") ))
+  rich.obs<-subdat
+  names(rich.obs)<-rownames(data_abu)
+  rich.obs<-na.omit(rich.obs)
+  latitu<-data_abu[names(rich.obs),1] ; names(latitu)<-names(rich.obs)
+  longitu<-data_abu[names(rich.obs),2]; names(longitu)<-names(rich.obs)
+  
+  pred.power.gam(x=rich.obs,lat=latitu,lon=longitu,sam=20,bins=.8,k=30,taxo=nm[j],nb_s=5)
+  
+  eval(parse(text=paste("subdat<-data_abu$pla_",nm,"_abu",sep="") ))
+  rich.obs<-subdat
+  names(rich.obs)<-rownames(data_abu)
+  rich.obs<-na.omit(rich.obs)
+  latitu<-data_abu[names(rich.obs),1] ; names(latitu)<-names(rich.obs)
+  longitu<-data_abu[names(rich.obs),2]; names(longitu)<-names(rich.obs)
+  pred.power.gam(x=rich.obs,lat=latitu,lon=longitu,sam=20,bins=.8,k=30,taxo=nm[j],nb_s=5)
+  j<-j+1
+}
+dev.off()
+
+#########################################################
+# Figure S7A
+#########################################################
+FGN_S<-7#FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,"_A.pdf"),height = 6,width = 6)
+layout(matrix(c(1:4),nc=2,nr=2,byrow = T) ) 
+i<-1
+for (i in c(1,2)){
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(6+0.5) ; rgeX<- 1
+  Ymn<-(-0.5); Ymx<-0.5 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx,rgeX)
+  nam.plot.x<-c("Plants","AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx+1)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx+1,0,lty=3)
+  
+  # Add title with color  
+  title(main=paste(nm_tax,sep=""),cex.main=1.2)
+  text(0.1,0.4,paste("Diversity",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/sub_corr_",i,"_",tax2))
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    
+    if(boxco[1,1]>0 | boxco[5,1]<0){
+      rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1],col="grey")
+    }else{
+      rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1])
+    }
+    segments(j-0.10,boxco[3,1],j+0.10,boxco[3,1])
+    segments(j,boxco[1,1],j,boxco[2,1]) ; segments(j,boxco[4,1],j,boxco[5,1])
+    segments(j-0.10,boxco[1,1],j+0.10,boxco[1,1]) ; segments(j-0.10,boxco[5,1],j+0.10,boxco[5,1])
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(5+0.5) ; rgeX<- 1
+  Ymn<-(-0.50); Ymx<-0.50 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx-1,rgeX)
+  nam.plot.x<-c("AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx+1,0,lty=3)
+  
+  # Add title with color  
+  title(main=paste(nm_tax,sep=""),cex.main=1.2)
+  text(0.1,0.4,paste("Frequency",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    
+    rec_dat<-taxa2[int,"Records"]/pl_all[int,"Records"]
+    rec_dat<-log(rec_dat/(1-rec_dat))
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/sub_corr_",i,"_",tax2,"_rec"))
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    
+    if(boxco[1,1]>0 | boxco[5,1]<0){
+      rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1],col="grey")
+    }else{
+      rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1])
+    }
+    segments(j-0.10,boxco[3,1],j+0.10,boxco[3,1])
+    segments(j,boxco[1,1],j,boxco[2,1]) ; segments(j,boxco[4,1],j,boxco[5,1])
+    segments(j-0.10,boxco[1,1],j+0.10,boxco[1,1]) ; segments(j-0.10,boxco[5,1],j+0.10,boxco[5,1])
+    j<-j+1
+  }
+}
+dev.off()
+
+#########################################################
+# Figure S7A
+#########################################################
+FGN_S<-7#FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,"_B.pdf"),height = 6,width = 6)
+mat<-matrix(c(23,1:6,23,0,13:17,24,7:12,24,0,18:22),nc=7,nr=4,byrow = T) 
+layout(mat)
+
+i<-1
+for (i in c(1,2)){
+  tit<-c('Vasc. Plants','AM Plants','ECM Plants','NM Plants','ERM Plants','ORM Plants')
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/sub_corr_",i,"_",tax2))
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    data_h<-hist(as.numeric(resu$spearm_test$r),plot=F)
+    
+    data_h$density<-data_h$density/sum(data_h$density)
+    # Defining plot coordinates
+    Xmn<- -0.5 ; Xmx<-0.5 ; rgeX<- 0.25
+    Ymn<-(0); Ymx<-round(max(data_h$density),1)+0.1 ; rgeY<- 0.1
+    seq.plot.y<-seq(Ymn,Ymx,rgeY)
+    seq.plot.x<-seq(Xmn,Xmx,rgeX)
+    nam.plot.x<-seq.plot.x
+    seq.lab.x<-c(Xmn,Xmx)
+    seq.lab.y<-c(Ymn,Ymx)
+    if(tax2 =='pl_all'){nmX="Correlation (Rho)";nmY="Proportion"; mar=c(2.4,3.5,2,1)}else{nmX="";nmY=""; mar=c(2.4,3.5,2,1)}
+    
+    # Making empty plot   
+    niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=mar,
+             tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+             lasX=1,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+             nmX=nmX,nmY=nmY,   lineXt=-0.1+2.5, lineYt=0.1+2.1,   cexXt=.8, cexYt=0.8,cex=.31 )
+    # Add dotted line (lty=3)    
+    segments(0,0,0,Ymx,lty=3,lwd=2)
+    
+    
+    for (h in 1:length(data_h$breaks)){
+      rect(data_h$breaks[h],0,data_h$breaks[h+1],data_h$density[h],col="grey69")
+    }
+    
+    # Add title with color  
+    title(main=paste0(tit[j]," (D)"),cex.main=1.2)
+    pp<-ci95pp(as.numeric(resu$spearm_test$r))
+    
+    text(-0.49,Ymx-(Ymx*0.05),paste0("Mean = ",round(mean(as.numeric(resu$spearm_test$r)),2)),pos=4,cex=1)
+    text(-0.49,Ymx-(Ymx*0.15),paste0("SD = ",round(sd(as.numeric(resu$spearm_test$r)),2)),pos=4,cex=1)
+    #text(0.02,Ymx-(Ymx*0.05),paste0("CI95 = [",round(quantile(as.numeric(resu$spearm_test$r),c(0.025)),2)," ; ",round(quantile(as.numeric(resu$spearm_test$r),c(0.975)),2),"]"),pos=4,cex=1)
+    text(0.01,Ymx-(Ymx*0.05),pp,pos=4,cex=1)
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  tit<-c('AM Plants','ECM Plants','NM Plants','ERM Plants','ORM Plants')
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/sub_corr_",i,"_",tax2,"_rec"))
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    data_h<-hist(as.numeric(resu$spearm_test$r),plot=F)
+    
+    data_h$density<-data_h$density/sum(data_h$density)
+    # Defining plot coordinates
+    Xmn<- -0.5 ; Xmx<-0.5 ; rgeX<- 0.25
+    Ymn<-(0); Ymx<-round(max(data_h$density),1)+0.1 ; rgeY<- 0.1
+    seq.plot.y<-seq(Ymn,Ymx,rgeY)
+    seq.plot.x<-seq(Xmn,Xmx,rgeX)
+    nam.plot.x<-seq.plot.x
+    seq.lab.x<-c(Xmn,Xmx)
+    seq.lab.y<-c(Ymn,Ymx)
+    if(tax2 =='pl_AM'){nmX="";nmY="Proportion"; mar=c(2.4,3.5,2,1)}else{nmX="";nmY=""; mar=c(2.4,3.5,2,1)}
+    
+    # Making empty plot   
+    niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=mar,
+             tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+             lasX=1,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+             nmX=nmX,nmY=nmY,   lineXt=-0.1+2.5, lineYt=0.1+2.1,   cexXt=0.8, cexYt=0.8,cex=.31 )    # Add dotted line (lty=3)    
+    segments(0,0,0,Ymx,lty=3,lwd=2)
+    
+    
+    for (h in 1:length(data_h$breaks)){
+      rect(data_h$breaks[h],0,data_h$breaks[h+1],data_h$density[h],col="grey69")
+    }
+    # Add title with color  
+    title(main=paste0(tit[j]," (D)"),cex.main=1.2)
+    pp<-ci95pp(as.numeric(resu$spearm_test$r))
+    
+    text(-0.49,Ymx-(Ymx*0.05),paste0("Mean = ",round(mean(as.numeric(resu$spearm_test$r)),2)),pos=4,cex=1)
+    text(-0.49,Ymx-(Ymx*0.15),paste0("SD = ",round(sd(as.numeric(resu$spearm_test$r)),2)),pos=4,cex=1)
+    #text(0.02,Ymx-(Ymx*0.05),paste0("CI95 = [",round(quantile(as.numeric(resu$spearm_test$r),c(0.025)),2)," ; ",round(quantile(as.numeric(resu$spearm_test$r),c(0.975)),2),"]"),pos=4,cex=1)
+    
+    text(0.01,Ymx-(Ymx*0.05),pp,pos=4,cex=1)
+    j<-j+1
+  }
+}
+niceplot3(limX=c(0,1),limY=c(0,1), marg=c(0,0,0,0),
+          tick=-0.4,   labX=c(),labY=c(),labY2=c(),    nmlabX=c(),nmlabY=c(),nmlabY2=c(),
+          lasX=1,lasY=1,lasY2=1,    lineX=-0.1, lineY=0.1, lineY2=0.1,   cexX=0.9, cexY=0.9, cexY2=0.9,
+          nmX="X",nmY="Y",nmY2="Y2",   lineXt=lineX+2, lineYt=lineY+2.5, lineYt2=lineY2+2.5,   cexXt=1, cexYt=1,cexYt2=1 ,main=c(),cex=.5  )
+
+text(0.5,0.5,"AM", srt=90,cex=5)
+niceplot3(limX=c(0,1),limY=c(0,1), marg=c(0,0,0,0),
+          tick=-0.4,   labX=c(),labY=c(),labY2=c(),    nmlabX=c(),nmlabY=c(),nmlabY2=c(),
+          lasX=1,lasY=1,lasY2=1,    lineX=-0.1, lineY=0.1, lineY2=0.1,   cexX=0.9, cexY=0.9, cexY2=0.9,
+          nmX="X",nmY="Y",nmY2="Y2",   lineXt=lineX+2, lineYt=lineY+2.5, lineYt2=lineY2+2.5,   cexXt=1, cexYt=1,cexYt2=1 ,main=c(),cex=.5  )
+
+text(0.5,0.5,"ECM", srt=90,cex=5)
+dev.off()
+
+
+#########################################################
+# Figure S8
+#########################################################
+FGN_S<-8#FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 12,width = 8)
+layout(matrix(c(1:6),nc=2,nr=3,byrow = F) ) 
+bf<-c(50,40,30)
+for (j in 1:3){
+  i<-1
+  for (i in c(1,2)){
+    nm_tax<-c("AM Fungi","ECM Fungi")[i]
+    # Defining plot coordinates
+    Xmn<- 0 ; Xmx<-round(6+0.5) ; rgeX<- 1
+    Ymn<-(-0.5); Ymx<-0.5 ; rgeY<- 0.25
+    seq.plot.y<-seq(Ymn,Ymx,rgeY)
+    seq.plot.x<-seq(Xmn+1,Xmx,rgeX)
+    nam.plot.x<-c("Plants","AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+    seq.lab.x<-c(Xmn,Xmx+1)
+    seq.lab.y<-c(Ymn,Ymx)
+    if(i == 1){nmY="Correlation"}else{nmY=""}
+    
+    # Making empty plot   
+    niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+             tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+             lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+             nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+    # Add dotted line (lty=3)    
+    segments(Xmn,0,Xmx+1,0,lty=3)
+    
+    # Add title with color  
+    title(main=paste(nm_tax,sep=""),cex.main=1.2)
+    text(0.1,0.4,paste("Diversity",sep=""),pos=4)
+    
+    # Fill the plot with observed data
+    if(i==1){taxa1<-AM}else{taxa1<-EM}
+    j<-1
+    for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+      eval(parse(text=paste("taxa2<-",tax2,sep="")))
+      int<-intersect(rownames(taxa1),rownames(taxa2))
+      if(j==1){
+        load(paste0("/Users/aurele/Desktop/test10/data/resu/ALL_corr_",i,"_",tax2))
+      }
+      if(j==2){
+        load(paste0("/Users/aurele/Desktop/test10/data/resu/40_corr_",i,"_",tax2))
+      }
+      if(j==3){
+        load(paste0("/Users/aurele/Desktop/test10/data/resu/30_corr_",i,"_",tax2))
+      }
+      
+      boxco<-ci95(as.numeric(resu$spearm_test$r))
+      
+      if(boxco[1,1]>0 | boxco[5,1]<0){
+        rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1],col="grey")
+      }else{
+        rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1])
+      }
+      text(0.1,0.4,paste0("Buffer size = ",bf[j],"km"),pos=4,cex=1.8)
+      segments(j-0.10,boxco[3,1],j+0.10,boxco[3,1])
+      segments(j,boxco[1,1],j,boxco[2,1]) ; segments(j,boxco[4,1],j,boxco[5,1])
+      segments(j-0.10,boxco[1,1],j+0.10,boxco[1,1]) ; segments(j-0.10,boxco[5,1],j+0.10,boxco[5,1])
+      j<-j+1
+    }
+  }
+}
+dev.off()
+
+#########################################################
+# Figure S9
+#########################################################
+FGN_S<-FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 12,width = 8)
+layout(matrix(c(1:6),nc=2,nr=3,byrow = F) ) 
+nall<-1000
+i<-1
+for (i in c(1,2)){
+  for (bf in c(50,40,30)){
+    nm_tax<-c("AM Fungi","ECM Fungi")[i]
+    # Defining plot coordinates
+    Xmn<- 0 ; Xmx<-round(5+0.5) ; rgeX<- 1
+    Ymn<-(-0.5); Ymx<-0.5 ; rgeY<- 0.25
+    seq.plot.y<-seq(Ymn,Ymx,rgeY)
+    seq.plot.x<-seq(Xmn+1,Xmx-1,rgeX)
+    nam.plot.x<-c("AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+    seq.lab.x<-c(Xmn,Xmx)
+    seq.lab.y<-c(Ymn,Ymx)
+    if(i == 1){nmY="Correlation"}else{nmY=""}
+    if(bf == 50){Xtit=nm_tax}else{Xtit=""}
+    
+    # Making empty plot   
+    niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(6.4,5,2,1.5),
+             tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+             lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+             nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+3.1,   cexXt=1.2, cexYt=1.2,cex=.31 )
+    # Add dotted line (lty=3)    
+    segments(Xmn,0,Xmx+1,0,lty=3)
+    
+    # Data
+    if(i==1){taxa1<-AM}else{taxa1<-EM}
+    if (bf == 50){
+      rds_tax2<-c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')
+    }
+    if (bf == 40){
+      rds_tax2<-c('pl_all_40','pl_AM_40','pl_EM_40','pl_NM_40','pl_ER_40','pl_OR_40')
+    }
+    if (bf == 30){
+      rds_tax2<-c('pl_all_30','pl_AM_30','pl_EM_30','pl_NM_30','pl_ER_30','pl_OR_30')
+    }
+    
+    # Add title with color  
+    title(main=Xtit,cex.main=2.5)
+    text(0.1,0.4,paste0("Buffer size = ",bf,"km"),pos=4,cex=1.8)
+    
+    # Fill the plot with observed data
+    j<-1
+    for (tax2 in c('pl_AM','pl_EM','pl_ER','pl_NM','pl_OR')){
+      eval(parse(text=paste("taxa2<-",tax2,sep="")))
+      taxa2<-taxa2[!(is.na(taxa2$rich.est)|is.na(taxa2$records)),]
+      taxa2<-taxa2[taxa2$records>19,]
+      resu<-corr_tax2(taxa1[rownames(taxa2),],taxa2,pl_all,n=nall)
+      boxco<-ci95(as.numeric(resu$spearm_test$r))
+      if(boxco[1,1]>0 | boxco[5,1]<0){
+        rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1],col="grey")
+      }else{
+        rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1])
+      }
+      segments(j-0.10,boxco[3,1],j+0.10,boxco[3,1])
+      segments(j,boxco[1,1],j,boxco[2,1]) ; segments(j,boxco[4,1],j,boxco[5,1])
+      segments(j-0.10,boxco[1,1],j+0.10,boxco[1,1]) ; segments(j-0.10,boxco[5,1],j+0.10,boxco[5,1])
+      j<-j+1
+    }
+  } # end of bf
+} # end of i
+dev.off()
+
+#########################################################
+# Figure S10
+#########################################################
+FGN_S<-FGN_S+1
+pdf(file=paste0(figset,"/Figure_S",FGN_S,".pdf"),height = 8,width = 8)
+Xmn<-2 ; Xmx<-9; rgeX<- 1
+Ymn<-0; Ymx<-5; 
+rgeY<- 1
+seq.plot.y<-seq(Ymn,Ymx,rgeY)
+seq.plot.x<-seq(Xmn,Xmx,rgeX)
+nam.plot.x<-seq(Xmn,Xmx,rgeX)
+nam.plot.y<-seq(Ymn,Ymx,rgeY)
+seq.lab.x<-c(Xmn,Xmx)
+seq.lab.y<-c(Ymn,Ymx)
+nmY="Standard deviation of \nEstimate Species Richness"
+nmX="Number of species by sites (log)"
+niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(4,5,2,1),
+         tick=-.4,   labY=seq.plot.y,labX=seq.plot.x,     nmlabY=nam.plot.y,nmlabX=seq.plot.x,   
+         lasX=1,lasY=1,    lineX=-0.3, lineY=-.3,  cexX=0.9, cexY=0.9,
+         nmY=nmY,nmX=nmX,   lineXt=.8, lineYt=.8,   cexXt=1, cexYt=1,cex=.31 )
+points(pl_all$rich.obs,abs(pl_all$rich.est.se),pch=16,col="grey30",cex=0.9)
+XY_t<-rescor(abs(pl_all$rich.est.se),pl_all$rich.obs)
+title(main=paste0("\nN = ",XY_t$N," ; Rho = ",XY_t$r," ",XY_t$pvalue),cex.main=1.7)
+dev.off()
+
+#########################################################
+# Figure OTHERS FOR TEST ONLY
+#########################################################
+cex.siz<-1.2
+pdf(file=paste0(figset,"/Figure_4_TEST(1).pdf"),height = 6,width = 6)
+layout(matrix(c(1:4),nc=2,nr=2,byrow = T) )
+i<-1
+for (i in c(1,2)){
+  foc_tax<-c("AMF_rich","ECM_rich")[i]
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  test_tax<-c(c("ECM_rich","AMF_rich")[i],"pla_rich","pla_AM_rich","pla_ECM_rich","pla_NM_rich","pla_ERM_rich","pla_ORM_rich")
+  data=data_div
+  eval(parse(text=paste("data<-data[!(is.na(data$",foc_tax,")),]",sep="") ))
+  
+  ##### WORLD CORRELATION
+  sel_row<-rownames(data)
+  data_sel<-data[sel_row,]
+  
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(6+0.5) ; rgeX<- 1
+  Ymn<-(-0.5); Ymx<-0.5 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx,rgeX)
+  nam.plot.x<-c("Plants","AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx+1)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  
+  
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx+1,0,lty=3)
+  #segments(2.5,-1,2.5,1,lty=2)
+  
+  # Add title with color  
+  title(main=paste(nm_tax,sep=""),cex.main=1.2)
+  text(0.1,0.8,paste("Diversity",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  val.cor<-list()
+  j<-1 ; v<-1
+  for (tax in test_tax[-1]){
+    ya<-na.omit(data_sel[,tax]) ; names(ya)<-rownames(data_sel[!(is.na(data_sel[,tax])),])
+    xa<-data_sel[names(ya),foc_tax]
+    
+    val.cor[[v]]<-rescor(xa,ya,meth = "spearman")
+    if(val.cor[[v]]$pvalue == "ns"){
+      points(v,as.numeric(val.cor[[v]]$r),pch=1,cex=cex.siz)
+    }else{
+      points(v,as.numeric(val.cor[[v]]$r),pch=16,cex=cex.siz)
+    }
+    # Add number of observations   
+    #text(v,-0.9,length(na.omit(xa)),cex=0.75)
+    j<-j+5
+    v<-v+1
+  } # end of tax
+  # Add segments from randomization    
+  tab_rand<-matrix(NA,nc=length(test_tax[-1]) ,nr=999,dimnames = list(paste("boot",1:999),nam.plot.x))
+  for (boot in 1:999){
+    data_sel_rand<-data_sel
+    colnames(data_sel_rand)<-colnames(data_sel)
+    
+    j<-1
+    for (tax in test_tax[-1]){
+      kya<-na.omit(data_sel_rand[,tax]) ; names(kya)<-rownames(data_sel_rand[!(is.na(data_sel_rand[,tax])),])
+      ya<-kya[sample(1:length(kya),0.7*length(kya))]
+      xa<-data_sel_rand[names(ya),foc_tax]
+      
+      if (length(na.omit(xa))>10& sum(ya)!=0){
+        tab_rand[boot,j]<-as.numeric(rescor(xa,ya,meth = "spearman")$r)
+      }else{
+        tab_rand[boot,j]<-NA
+      }
+      j<-j+1
+    } # end of tax
+  } # end of boot
+  
+  k<-1 ; v<-1
+  for (tax in colnames(tab_rand)){  
+    tab_ses<-quantile(na.omit(as.numeric(tab_rand[,tax])),probs=c(0.1,0.95))
+    tab_pva<-length(which(as.numeric(tab_rand[,tax])<as.numeric(val.cor[[v]]$r)))/length(as.numeric(tab_rand[,tax]))
+    segments(v,tab_ses[1],v,tab_ses[2])
+    k=k+5
+    v<-v+1
+  } # end of tax
+}
+for (i in c(1,2)){
+  foc_tax<-c("AMF_rich","ECM_rich")[i]
+  test_tax<-c(c("ECM_rich","AMF_rich")[i],"pla_abu","pla_AM_abu","pla_ECM_abu","pla_NM_abu","pla_ERM_abu","pla_ORM_abu")
+  data<-data_abu
+  eval(parse(text=paste("data<-data[!(is.na(data$",foc_tax,")),]",sep="") ))
+  
+  ##### WORLD CORRELATION
+  sel_row<-rownames(data)
+  data_sel<-data[sel_row,]
+  
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(5+0.75) ; rgeX<- 1
+  Ymn<-(-0.5); Ymx<-0.5; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx-1,rgeX)
+  nam.plot.x<-c("AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(6,4.5,1,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  
+  
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx,0,lty=3)
+  #segments(2.5,-1,2.5,1,lty=2)
+  
+  # Add title with color  
+  #title(main=paste(foc_tax,"(N=",dim(data_sel)[1],")",sep=""),cex.main=1.5)
+  text(0.1,0.8,paste("Dominance",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  val.cor<-list()
+  j<-1 ; v<-1
+  for (tax in test_tax[-c(1,2)]){
+    
+    kya<-na.omit(data_sel[,tax]) ; names(kya)<-rownames(data_sel[!(is.na(data_sel[,tax])),])
+    
+    ya<-log(kya/(1-kya))
+    ya<-ya[which(ya!=Inf)]
+    xa<-data_sel[names(ya),foc_tax]
+    
+    val.cor[[v]]<-rescor(xa,ya,meth = "spearman")
+    if(val.cor[[v]]$pvalue == "ns"){
+      points(v,as.numeric(val.cor[[v]]$r),pch=1,cex=cex.siz)
+    }else{
+      points(v,as.numeric(val.cor[[v]]$r),pch=16,cex=cex.siz)
+    }
+    # Add number of observations   
+    #text(v,-0.9,length(na.omit(xa)),cex=0.75)
+    j<-j+5
+    v<-v+1
+  } # end of tax
+  # Add segments from randomization    
+  tab_rand<-matrix(NA,nc=length(test_tax[-c(1,2)]) ,nr=999,dimnames = list(paste("boot",1:999),nam.plot.x))
+  for (boot in 1:999){
+    data_sel_rand<-data_sel
+    colnames(data_sel_rand)<-colnames(data_sel)
+    
+    j<-1
+    for (tax in test_tax[-c(1,2)]){
+      kya<-na.omit(data_sel_rand[,tax]) ; names(kya)<-rownames(data_sel_rand[!(is.na(data_sel_rand[,tax])),])
+      #kya<-kya[kya!=0]
+      yak<-log(kya/(1-kya))
+      yak<-yak[which(yak!=Inf)]
+      
+      ya<-yak[sample(1:length(yak),0.7*length(yak))]
+      xa<-data_sel_rand[names(ya),foc_tax]
+      
+      if (length(na.omit(xa))>10& sum(ya)!=0){
+        tab_rand[boot,j]<-as.numeric(rescor(xa,ya,meth = "spearman")$r)
+      }else{
+        tab_rand[boot,j]<-NA
+      }
+      j<-j+1
+    } # end of tax
+  } # end of boot
+  
+  k<-1 ; v<-1 ; v1<-3.5
+  for (tax in colnames(tab_rand)){  
+    tab_ses<-quantile(na.omit(as.numeric(tab_rand[,tax])),probs=c(0.05,0.95))
+    tab_pva<-length(which(as.numeric(tab_rand[,tax])<as.numeric(val.cor[[v]]$r)))/length(as.numeric(tab_rand[,tax]))
+    segments(v,tab_ses[1],v,tab_ses[2])
+    k=k+5
+    v<-v+1
+    v1<-v1+1
+  } # end of tax
+}
+dev.off()
+
+#########################################################
+# Figure OTHERS FOR TEST ONLY (2)
+#########################################################
+pdf(file=paste0(figset,"/Figure_4_TEST(2)_b.pdf"),height = 6,width = 6)
+layout(matrix(c(1:4),nc=2,nr=2,byrow = T) ) #; layout.show(9)
+i<-1
+for (i in c(1,2)){
+  foc_tax<-c("AMF_rich","ECM_rich")[i]
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  test_tax<-c(c("ECM_rich","AMF_rich")[i],"pla_rich","pla_AM_rich","pla_ECM_rich","pla_NM_rich","pla_ERM_rich","pla_ORM_rich")
+  if (i==1){data=data_div[1:116,]}else{data=data_div[117:457,]}
+  eval(parse(text=paste("data<-data[!(is.na(data$",foc_tax,")),]",sep="") ))
+  
+  ##### WORLD CORRELATION
+  sel_row<-rownames(data)
+  data_sel<-data[sel_row,]
+  
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(6+0.5) ; rgeX<- 1
+  Ymn<-(-0.5); Ymx<-0.5 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx,rgeX)
+  nam.plot.x<-c("Plants","AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx+1)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  
+  
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx+1,0,lty=3)
+  #segments(2.5,-1,2.5,1,lty=2)
+  
+  # Add title with color  
+  title(main=paste(nm_tax,sep=""),cex.main=1.2)
+  text(0.1,0.8,paste("Diversity",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  val.cor<-list()
+  j<-1 ; v<-1
+  for (tax in test_tax[-1]){
+    ya<-na.omit(data_sel[,tax]) ; names(ya)<-rownames(data_sel[!(is.na(data_sel[,tax])),])
+    xa<-data_sel[names(ya),foc_tax]
+    
+    val.cor[[v]]<-rescor(xa,ya,meth = "spearman")
+    if(val.cor[[v]][3] == "ns"){
+      points(v,as.numeric(val.cor[[v]][2]),pch=1,cex=cex.siz)
+    }else{
+      points(v,as.numeric(val.cor[[v]][2]),pch=16,cex=cex.siz)
+    }
+    # Add number of observations   
+    #text(v,-0.9,length(na.omit(xa)),cex=0.75)
+    j<-j+5
+    v<-v+1
+  } # end of tax
+  # Add segments from randomization    
+  tab_rand<-matrix(NA,nc=length(test_tax[-1]) ,nr=999,dimnames = list(paste("boot",1:999),nam.plot.x))
+  for (boot in 1:999){
+    data_sel_rand<-data_sel
+    colnames(data_sel_rand)<-colnames(data_sel)
+    
+    j<-1
+    for (tax in test_tax[-1]){
+      kya<-na.omit(data_sel_rand[,tax]) ; names(kya)<-rownames(data_sel_rand[!(is.na(data_sel_rand[,tax])),])
+      ya<-kya[sample(1:length(kya),0.7*length(kya))]
+      xa<-data_sel_rand[names(ya),foc_tax]
+      
+      if (length(na.omit(xa))>10& sum(ya)!=0){
+        tab_rand[boot,j]<-rescor(xa,ya,meth = "spearman")[2] 
+      }else{
+        tab_rand[boot,j]<-NA
+      }
+      j<-j+1
+    } # end of tax
+  } # end of boot
+  
+  k<-1 ; v<-1
+  for (tax in colnames(tab_rand)){  
+    tab_ses<-quantile(na.omit(as.numeric(tab_rand[,tax])),probs=c(0.025,0.975))
+    tab_pva<-length(which(as.numeric(tab_rand[,tax])<as.numeric(val.cor[[v]][2])))/length(as.numeric(tab_rand[,tax]))
+    segments(v,tab_ses[1],v,tab_ses[2])
+    k=k+5
+    v<-v+1
+  } # end of tax
+}
+for (i in c(1,2)){
+  foc_tax<-c("AMF_rich","ECM_rich")[i]
+  test_tax<-c(c("ECM_rich","AMF_rich")[i],"pla_abu","pla_AM_abu","pla_ECM_abu","pla_NM_abu","pla_ERM_abu","pla_ORM_abu")
+  if (i==1){data=data_abu[1:116,]}else{data=data_abu[117:457,]}
+  eval(parse(text=paste("data<-data[!(is.na(data$",foc_tax,")),]",sep="") ))
+  
+  ##### WORLD CORRELATION
+  sel_row<-rownames(data)
+  data_sel<-data[sel_row,]
+  
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(5+0.75) ; rgeX<- 1
+  Ymn<-(-0.5); Ymx<-0.5 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx-1,rgeX)
+  nam.plot.x<-c("AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(6,4.5,1,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  
+  
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx,0,lty=3)
+  #segments(2.5,-1,2.5,1,lty=2)
+  
+  # Add title with color  
+  #title(main=paste(foc_tax,"(N=",dim(data_sel)[1],")",sep=""),cex.main=1.5)
+  text(0.1,0.8,paste("Dominance",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  val.cor<-list()
+  j<-1 ; v<-1
+  for (tax in test_tax[-c(1,2)]){
+    
+    kya<-na.omit(data_sel[,tax]) ; names(kya)<-rownames(data_sel[!(is.na(data_sel[,tax])),])
+    
+    ya<-log(kya/(1-kya))
+    ya<-ya[which(ya!=Inf)]
+    xa<-data_sel[names(ya),foc_tax]
+    
+    val.cor[[v]]<-rescor(xa,ya,meth = "spearman")
+    if(val.cor[[v]][3] == "ns"){
+      points(v,as.numeric(val.cor[[v]][2]),pch=1,cex=cex.siz)
+    }else{
+      points(v,as.numeric(val.cor[[v]][2]),pch=16,cex=cex.siz)
+    }
+    # Add number of observations   
+    #text(v,-0.9,length(na.omit(xa)),cex=0.75)
+    j<-j+5
+    v<-v+1
+  } # end of tax
+  # Add segments from randomization    
+  tab_rand<-matrix(NA,nc=length(test_tax[-c(1,2)]) ,nr=999,dimnames = list(paste("boot",1:999),nam.plot.x))
+  for (boot in 1:999){
+    data_sel_rand<-data_sel
+    colnames(data_sel_rand)<-colnames(data_sel)
+    
+    j<-1
+    for (tax in test_tax[-c(1,2)]){
+      kya<-na.omit(data_sel_rand[,tax]) ; names(kya)<-rownames(data_sel_rand[!(is.na(data_sel_rand[,tax])),])
+      #kya<-kya[kya!=0]
+      yak<-log(kya/(1-kya))
+      yak<-yak[which(yak!=Inf)]
+      
+      ya<-yak[sample(1:length(yak),0.7*length(yak))]
+      xa<-data_sel_rand[names(ya),foc_tax]
+      
+      if (length(na.omit(xa))>10& sum(ya)!=0){
+        tab_rand[boot,j]<-rescor(xa,ya,meth = "spearman")[2] 
+      }else{
+        tab_rand[boot,j]<-NA
+      }
+      j<-j+1
+    } # end of tax
+  } # end of boot
+  
+  k<-1 ; v<-1 ; v1<-3.5
+  for (tax in colnames(tab_rand)){  
+    tab_ses<-quantile(na.omit(as.numeric(tab_rand[,tax])),probs=c(0.025,0.975))
+    tab_pva<-length(which(as.numeric(tab_rand[,tax])<as.numeric(val.cor[[v]][2])))/length(as.numeric(tab_rand[,tax]))
+    segments(v,tab_ses[1],v,tab_ses[2])
+    k=k+5
+    v<-v+1
+    v1<-v1+1
+  } # end of tax
+}
+dev.off()
+
+#########################################################
+# Figure OTHERS FOR TEST ONLY (3)
+#########################################################
+setwd('/Users/aurele/Desktop/test10/data')
+load("sel_data.R")
+AM = read.table("AMF_200.txt",h=T) ; AM=AM[sel_data,]
+EM = read.table("ECM_200.txt",h=T) ;EM<-EM[sel_data,]
+pdf(file=paste0(figset,"/Figure_boxplot_TEST(3).pdf"),height = 8,width = 9)
+layout(matrix(c(1:4),nc=2,nr=2,byrow = T) ) #; layout.show(9)
+par(mar=c(3,5,2.5,2))
+boxplot(AM[1:116,"rich.est"],AM[117:457,"rich.est"], outline = F,col="grey",names=c("Observed sites (n=116)","GAM sites (n=341)"),ylab="Shannon diversity")
+res=t.test(AM[1:116,"rich.est"],AM[117:457,"rich.est"],paired = F)
+if(res$p.value<0.001){text(1.5,5.5,"*",cex=3)}
+title(main="AMF")
+boxplot(EM[117:457,"rich.est"],EM[1:116,"rich.est"], outline = F,col="grey",names=c("Observed sites (n=341)","GAM sites (n=116)"),ylab="Shannon diversity")
+title(main="ECM")
+res=t.test(EM[117:457,"rich.est"],EM[1:116,"rich.est"],paired = F)
+if(res$p.value<0.001){text(1.5,4.7,"*",cex=3)}
+
+boxplot(AM[1:116,"rich.est.sd"],AM[117:457,"rich.est.sd"], outline = F,col="grey",names=c("Observed sites (n=116)","GAM sites (n=341)"),ylab="Standard deviation")
+res=t.test(AM[1:116,"rich.est.sd"],AM[117:457,"rich.est.sd"],paired = F)
+if(res$p.value<0.001){text(1.5,4,"*",cex=3)}
+
+boxplot(EM[117:457,"rich.est.sd"],EM[1:116,"rich.est.sd"], outline = F,col="grey",names=c("Observed sites (n=341)","GAM sites (n=116)"),ylab="Standard deviation")
+res=t.test(EM[117:457,"rich.est.sd"],EM[1:116,"rich.est.sd"],paired = F)
+if(res$p.value<0.001){text(1.5,3.2,"*",cex=3)}
+dev.off()
+
+#########################################################
+# Figure OTHERS FOR TEST ONLY (4)
+#########################################################
+setwd('/Users/aurele/Desktop/test10/data')
+load("sel_data.R")
+AM = read.table("AMF_200.txt",h=T) ; AM=AM[sel_data,]
+EM = read.table("ECM_200.txt",h=T) ;EM<-EM[sel_data,]
+pdf(file=paste0(figset,"/Figure_boxplot_TEST(4).pdf"),height = 8,width = 9)
+layout(matrix(c(1:4),nc=2,nr=2,byrow = T) ) #; layout.show(9)
+par(mar=c(3,5,2.5,2))
+
+Yval<-AM[1:116,"rich.est"]
+Xval<-AM[1:116,"rich.gam"]
+Xmn<- round(min(Yval,Xval)-0.5) ; Xmx<-round(max(Yval,Xval)+1) ; rgeX<- 1
+Ymn<-Xmn; Ymx<-Xmn ; rgeY<-rgeX
+seq.lab.x<-c(Xmn,Xmx) ; seq.lab.y<-seq.lab.x
+seq.plot.x<-seq(Xmn,Xmx,rgeX) ; seq.plot.y<-seq.plot.x
+nam.plot.x<-seq(Xmn,Xmx,rgeX) ; nam.plot.y<-nam.plot.x
+nmY="Shannon Diversity (iNEXT)"
+nmX="Shannon Diversity (GAM)"
+niceplot(limY=seq.lab.x,limX=seq.lab.y, marg=c(3,3,2,2),
+         tick=-.2,   labY=seq.plot.x,labX=seq.plot.y,     nmlabY=nam.plot.x,nmlabX=seq.plot.y,   
+         lasX=1,lasY=1,    lineX=0, lineY=0,  cexX=0.7, cexY=0.7,
+         nmY=nmY,nmX=nmX,   lineXt=0.9, lineYt=1.3,   cexXt=0.8, cexYt=0.8,cex=.31 )
+points(Xval,Yval,pch=16,cex=1.25)
+segments(Ymn,Ymn,Xmx,Xmx,lwd=3,lty=3)
+corel<-cor.test(Xval,Yval)
+reglin<-lm(Yval~Xval)
+text(Ymn,Xmx-0.5,paste("N = ",length(Xval)," ; R2 = ",round(summary(reglin)$r.squared,2)," ***",sep=""),pos=4,cex=0.8,font=3)
+title(main ="AMF",cex.main=1 )
+
+Yval<-EM[117:457,"rich.est"]
+Xval<-EM[117:457,"rich.gam"]
+Xmn<- round(min(Yval,Xval)-0.5) ; Xmx<-round(max(Yval,Xval)+1) ; rgeX<- 1
+Ymn<-Xmn; Ymx<-Xmn ; rgeY<-rgeX
+seq.lab.x<-c(Xmn,Xmx) ; seq.lab.y<-seq.lab.x
+seq.plot.x<-seq(Xmn,Xmx,rgeX) ; seq.plot.y<-seq.plot.x
+nam.plot.x<-seq(Xmn,Xmx,rgeX) ; nam.plot.y<-nam.plot.x
+nmY="Shannon Diversity (iNEXT)"
+nmX="Shannon Diversity (GAM)"
+niceplot(limY=seq.lab.x,limX=seq.lab.y, marg=c(3,3,2,2),
+         tick=-.2,   labY=seq.plot.x,labX=seq.plot.y,     nmlabY=nam.plot.x,nmlabX=seq.plot.y,   
+         lasX=1,lasY=1,    lineX=0, lineY=0,  cexX=0.7, cexY=0.7,
+         nmY=nmY,nmX=nmX,   lineXt=0.9, lineYt=1.3,   cexXt=0.8, cexYt=0.8,cex=.31 )
+points(Xval,Yval,pch=16,cex=1.25)
+segments(Ymn,Ymn,Xmx,Xmx,lwd=3,lty=3)
+corel<-cor.test(Xval,Yval)
+reglin<-lm(Yval~Xval)
+text(Ymn,Xmx-0.5,paste("N = ",length(Xval)," ; R2 = ",round(summary(reglin)$r.squared,2)," ***",sep=""),pos=4,cex=0.8,font=3)
+title(main ="ECM",cex.main=1 )
+
+Yval<-AM[1:116,"rich.est.sd"]
+Xval<-AM[1:116,"rich.gam.sd"]
+Xmn<- 0 ; Xmx<-round(max(Yval,Xval)+1) ; rgeX<- 1
+Ymn<-Xmn; Ymx<-Xmn ; rgeY<-rgeX
+seq.lab.x<-c(Xmn,Xmx) ; seq.lab.y<-seq.lab.x
+seq.plot.x<-seq(Xmn,Xmx,rgeX) ; seq.plot.y<-seq.plot.x
+nam.plot.x<-seq(Xmn,Xmx,rgeX) ; nam.plot.y<-nam.plot.x
+nmY="Standard deviation (iNEXT)"
+nmX="Standard deviation (GAM)"
+niceplot(limY=seq.lab.x,limX=seq.lab.y, marg=c(3,3,2,2),
+         tick=-.2,   labY=seq.plot.x,labX=seq.plot.y,     nmlabY=nam.plot.x,nmlabX=seq.plot.y,   
+         lasX=1,lasY=1,    lineX=0, lineY=0,  cexX=0.7, cexY=0.7,
+         nmY=nmY,nmX=nmX,   lineXt=0.9, lineYt=1.3,   cexXt=0.8, cexYt=0.8,cex=.31 )
+points(Xval,Yval,pch=16,cex=1.25)
+segments(Ymn,Ymn,Xmx,Xmx,lwd=3,lty=3)
+corel<-cor.test(Xval,Yval)
+reglin<-lm(Yval~Xval)
+text(Ymn,Xmx-0.5,paste("N = ",length(Xval)," ; R2 = ",round(summary(reglin)$r.squared,2)," ***",sep=""),pos=4,cex=0.8,font=3)
+
+Yval<-EM[117:457,"rich.est.sd"]
+Xval<-EM[117:457,"rich.gam.sd"]
+Xmn<- 0 ; Xmx<-round(max(Yval,Xval)+1) ; rgeX<- 1
+Ymn<-Xmn; Ymx<-Xmn ; rgeY<-rgeX
+seq.lab.x<-c(Xmn,Xmx) ; seq.lab.y<-seq.lab.x
+seq.plot.x<-seq(Xmn,Xmx,rgeX) ; seq.plot.y<-seq.plot.x
+nam.plot.x<-seq(Xmn,Xmx,rgeX) ; nam.plot.y<-nam.plot.x
+nmY="Standard deviation (iNEXT)"
+nmX="Standard deviation (GAM)"
+niceplot(limY=seq.lab.x,limX=seq.lab.y, marg=c(3,3,2,2),
+         tick=-.2,   labY=seq.plot.x,labX=seq.plot.y,     nmlabY=nam.plot.x,nmlabX=seq.plot.y,   
+         lasX=1,lasY=1,    lineX=0, lineY=0,  cexX=0.7, cexY=0.7,
+         nmY=nmY,nmX=nmX,   lineXt=0.9, lineYt=1.3,   cexXt=0.8, cexYt=0.8,cex=.31 )
+points(Xval,Yval,pch=16,cex=1.25)
+segments(Ymn,Ymn,Xmx,Xmx,lwd=3,lty=3)
+corel<-cor.test(Xval,Yval)
+reglin<-lm(Yval~Xval)
+text(Ymn,Xmx-0.5,paste("N = ",length(Xval)," ; R2 = ",round(summary(reglin)$r.squared,2)," ***",sep=""),pos=4,cex=0.8,font=3)
+
+dev.off()
+#########################################################
+# END
+#########################################################
+#########################################################
+# Figure OTHERS FOR TEST ONLY
+#########################################################
+cex.siz<-1.2
+pdf(file=paste0(figset,"/Figure_4_TEST(3).pdf"),height = 6,width = 6)
+layout(matrix(c(1:4),nc=2,nr=2,byrow = T) ) 
+nall<-1000
+i<-1
+for (i in c(1,2)){
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(6+0.5) ; rgeX<- 1
+  Ymn<-(-0.5); Ymx<-0.5 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx,rgeX)
+  nam.plot.x<-c("Plants","AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx+1)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx+1,0,lty=3)
+  
+  # Add title with color  
+  title(main=paste(nm_tax,sep=""),cex.main=1.2)
+  text(0.1,0.4,paste("Diversity",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    taxa2<-taxa2[!(is.na(taxa2$rich.est)|is.na(taxa2$records)),]
+    taxa2<-taxa2[taxa2$records>19,]
+    taxa2[which(taxa2[,"rich.est.sd"]==-Inf),"rich.est.sd"]<-mean(taxa2[-which(taxa2[,"rich.est.sd"]==-Inf),"rich.est.sd"])
+    taxa2[which(taxa2[,"rich.est.sd"]==Inf),"rich.est.sd"]<-mean(taxa2[-which(taxa2[,"rich.est.sd"]==Inf),"rich.est.sd"])
+    resu<-corr_tax(taxa1[rownames(taxa2),],taxa2,n=nall)
+    resu_mean<-as.numeric(rescor(taxa1[rownames(taxa2),"rich.est"],taxa2[,"rich.est"],meth = "spearman")$r)
+    boxco<-ci95(as.numeric(resu$spearm_test$r)+(resu_mean-mean(as.numeric(resu$spearm_test$r))))
+    if(boxco[1,1]>0 | boxco[5,1]<0){
+      points(j,resu_mean,pch=16)
+      #rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1],col="grey")
+    }else{
+      points(j,resu_mean,pch=1)
+      #rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1])
+    }
+    #segments(j-0.10,boxco[3,1],j+0.10,boxco[3,1])
+    segments(j,boxco[1,1],j,boxco[2,1]) ; segments(j,boxco[4,1],j,boxco[5,1])
+    segments(j-0.10,boxco[1,1],j+0.10,boxco[1,1]) ; segments(j-0.10,boxco[5,1],j+0.10,boxco[5,1])
+    #text(Xmx,j,paste0("n=",resu$spearm_test$N[1]),pos=2)
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  # Defining plot coordinates
+  Xmn<- 0 ; Xmx<-round(5+0.5) ; rgeX<- 1
+  Ymn<-(-0.50); Ymx<-0.50 ; rgeY<- 0.25
+  seq.plot.y<-seq(Ymn,Ymx,rgeY)
+  seq.plot.x<-seq(Xmn+1,Xmx-1,rgeX)
+  nam.plot.x<-c("AM plant","ECM plant","NM plant","ERM plant","ORM plant")
+  seq.lab.x<-c(Xmn,Xmx)
+  seq.lab.y<-c(Ymn,Ymx)
+  if(i == 1){nmY="Correlation"}else{nmY=""}
+  
+  # Making empty plot   
+  niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=c(5.4,4.5,2,2),
+           tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+           lasX=3,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+           nmX="",nmY=nmY,   lineXt=-0.1+3.9, lineYt=0.1+2.8,   cexXt=1.2, cexYt=1.2,cex=.31 )
+  # Add dotted line (lty=3)    
+  segments(Xmn,0,Xmx+1,0,lty=3)
+  
+  # Add title with color  
+  title(main=paste(nm_tax,sep=""),cex.main=1.2)
+  text(0.1,0.4,paste("Frequency",sep=""),pos=4)
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    taxa2<-taxa2[!(is.na(taxa2$rich.est)|is.na(taxa2$records)),]
+    taxa2<-taxa2[taxa2$records>19,]
+    taxa2[which(taxa2[,"rich.est.sd"]==-Inf),"rich.est.sd"]<-mean(taxa2[-which(taxa2[,"rich.est.sd"]==-Inf),"rich.est.sd"])
+    taxa2[which(taxa2[,"rich.est.sd"]==Inf),"rich.est.sd"]<-mean(taxa2[-which(taxa2[,"rich.est.sd"]==Inf),"rich.est.sd"])
+    resu<-corr_tax2(taxa1[rownames(taxa2),],taxa2,pl_all,n=nall)
+    tt2_obs<-taxa2[,"records"]/pl_all[rownames(taxa2),"records"]
+    t2_obs<-log(tt2_obs/(1-tt2_obs))
+    resu_mean<-as.numeric(rescor(taxa1[rownames(taxa2),"rich.est"],t2_obs,meth = "spearman")$r)
+    boxco<-ci95(as.numeric(resu$spearm_test$r)+(resu_mean-mean(as.numeric(resu$spearm_test$r))))
+    if(boxco[1,1]>0 | boxco[5,1]<0){
+      points(j,resu_mean,pch=16)
+      #rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1],col="grey")
+    }else{
+      points(j,resu_mean,pch=1)
+      #rect(j-0.10,boxco[2,1],j+0.10,boxco[4,1])
+    }
+    #segments(j-0.10,boxco[3,1],j+0.10,boxco[3,1])
+    segments(j,boxco[1,1],j,boxco[2,1]) ; segments(j,boxco[4,1],j,boxco[5,1])
+    segments(j-0.10,boxco[1,1],j+0.10,boxco[1,1]) ; segments(j-0.10,boxco[5,1],j+0.10,boxco[5,1])
+    #text(Xmx,j,paste0("n=",resu$spearm_test$N[1]),pos=2)
+    j<-j+1
+  }
+}
+dev.off()
+
+##
+nall<-1000
+FGN<-4#FGN+1
+pdf(file=paste0(figset,"/Figure_",FGN,"_NEWSS_H2.pdf"),height = 6,width = 12)
+mat<-matrix(c(1:6,0,13:17,7:12,0,18:22),nc=6,nr=4,byrow = T) 
+layout(mat)
+
+i<-1
+for (i in c(1,2)){
+  tit<-c('Vasc. Plants','AM Plants','ECM Plants','NM Plants','ERM Plants','ORM Plants')
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    taxa2<-taxa2[!(is.na(taxa2$rich.est)|is.na(taxa2$records)),]
+    taxa2<-taxa2[taxa2$records>19,]
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+
+    resu<-corr_tax(taxa1[int,],taxa2[int,],n=nall)
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    
+    data_h<-hist(as.numeric(resu$spearm_test$r),plot=F)
+    data_h$density<-data_h$density/sum(data_h$density)
+    # Defining plot coordinates
+    Xmn<- -0.5 ; Xmx<-0.5 ; rgeX<- 0.25
+    Ymn<-(0); Ymx<-round(max(data_h$density),1)+0.1 ; rgeY<- 0.1
+    seq.plot.y<-seq(Ymn,Ymx,rgeY)
+    seq.plot.x<-seq(Xmn,Xmx,rgeX)
+    nam.plot.x<-seq.plot.x
+    seq.lab.x<-c(Xmn,Xmx)
+    seq.lab.y<-c(Ymn,Ymx)
+    if(tax2 =='pl_all'){nmX="Correlation (Rho)";nmY="Frequency"; mar=c(2.4,3.5,2,1)}else{nmX="";nmY=""; mar=c(2.4,3.5,2,1)}
+    
+    # Making empty plot   
+    niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=mar,
+             tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+             lasX=1,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+             nmX=nmX,nmY=nmY,   lineXt=-0.1+2, lineYt=0.1+1.7,   cexXt=.8, cexYt=0.8,cex=.31 )
+    # Add dotted line (lty=3)    
+    segments(0,0,0,Ymx,lty=3)
+    
+    
+    for (h in 1:length(data_h$breaks)){
+      rect(data_h$breaks[h],0,data_h$breaks[h+1],data_h$density[h])
+    }
+    
+    #segments(mean(as.numeric(resu$r)),0,mean(as.numeric(resu$r)),max(data_h$density)+0.01,col="red",lwd=2)
+    #points(mean(as.numeric(resu$r)),max(data_h$density)+0.01,col="red",pch=16,cex=2)
+    # Add title with color  
+    title(main=tit[j],cex.main=1.2)
+    #text(0.1,0.4,paste("Diversity",sep=""),pos=4)
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  tit<-c('AM Plants','ECM Plants','NM Plants','ERM Plants','ORM Plants')
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    taxa2<-taxa2[!(is.na(taxa2$rich.est)|is.na(taxa2$records)),]
+    taxa2<-taxa2[taxa2$records>19,]
+    int<-intersect(rownames(taxa1),rownames(taxa2))
+    
+    #rec_dat<-taxa2[int,"records"]/pl_all[int,"records"]
+    #rec_dat<-log(rec_dat/(1-rec_dat))
+    #resu<-NULL
+    #for (b in 1:nboot){
+    #  resu<-rbind(resu,rescor(taxa1[int,paste0("Boot",b)],rec_dat))
+    #}
+    
+    resu<-corr_tax2(taxa1[int,],taxa2[int,],pl_all = pl_all,n=nall)
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    data_h<-hist(as.numeric(resu$spearm_test$r),plot=F)
+    
+    data_h$density<-data_h$density/sum(data_h$density)
+    # Defining plot coordinates
+    Xmn<- -0.5 ; Xmx<-0.5 ; rgeX<- 0.25
+    Ymn<-(0); Ymx<-round(max(data_h$density),1)+0.1 ; rgeY<- 0.1
+    seq.plot.y<-seq(Ymn,Ymx,rgeY)
+    seq.plot.x<-seq(Xmn,Xmx,rgeX)
+    nam.plot.x<-seq.plot.x
+    seq.lab.x<-c(Xmn,Xmx)
+    seq.lab.y<-c(Ymn,Ymx)
+    if(tax2 =='pl_AM'){nmX="";nmY="Frequency"; mar=c(2.4,3.5,2,1)}else{nmX="";nmY=""; mar=c(2.4,3.5,2,1)}
+    
+    # Making empty plot   
+    niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=mar,
+             tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+             lasX=1,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+             nmX=nmX,nmY=nmY,   lineXt=-0.1+2, lineYt=0.1+1.7,   cexXt=0.8, cexYt=0.8,cex=.31 )    # Add dotted line (lty=3)    
+    segments(0,0,0,Ymx,lty=3)
+    
+    
+    for (h in 1:length(data_h$breaks)){
+      rect(data_h$breaks[h],0,data_h$breaks[h+1],data_h$density[h])
+    }
+    
+    #segments(mean(as.numeric(resu$r)),0,mean(as.numeric(resu$r)),max(data_h$density)+0.01,col="red",lwd=2)
+    #points(mean(as.numeric(resu$r)),max(data_h$density)+0.01,col="red",pch=16,cex=2)
+    # Add title with color  
+    title(main=tit[j],cex.main=1.2)
+    #text(0.1,0.4,paste("Diversity",sep=""),pos=4)
+    j<-j+1
+  }
+}
+dev.off()
+
+#########################################################
+# Figure 4TER
+#########################################################
+FGN<-4#FGN+1
+pdf(file=paste0(figset,"/Figure_",FGN,"_B1_N1.pdf"),height = 9,width = 17)
+mat<-matrix(c(23,1:6,23,0,13:17,24,7:12,24,0,18:22),nc=7,nr=4,byrow = T) 
+layout(mat)
+
+i<-1
+for (i in c(1,2)){
+  tit<-c('Vasc. Plants','AM Plants','ECM Plants','NM Plants','ERM Plants','ORM Plants')
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_all','pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2))
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    data_h<-hist(as.numeric(resu$spearm_test$r),plot=F)
+    
+    data_h$density<-data_h$density/sum(data_h$density)
+    # Defining plot coordinates
+    Xmn<- -0.5 ; Xmx<-0.5 ; rgeX<- 0.25
+    Ymn<-(0); Ymx<-round(max(data_h$density),1)+0.1 ; rgeY<- 0.1
+    seq.plot.y<-seq(Ymn,Ymx,rgeY)
+    seq.plot.x<-seq(Xmn,Xmx,rgeX)
+    nam.plot.x<-seq.plot.x
+    seq.lab.x<-c(Xmn,Xmx)
+    seq.lab.y<-c(Ymn,Ymx)
+    if(tax2 =='pl_all'){nmX="Correlation (Rho)";nmY="Proportion"; mar=c(2.4,3.5,2,1)}else{nmX="";nmY=""; mar=c(2.4,3.5,2,1)}
+    
+    # Making empty plot   
+    niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=mar,
+             tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+             lasX=1,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+             nmX=nmX,nmY=nmY,   lineXt=-0.1+2.5, lineYt=0.1+2.1,   cexXt=.8, cexYt=0.8,cex=.31 )
+    # Add dotted line (lty=3)    
+    segments(0,0,0,Ymx,lty=3,lwd=2)
+    
+    
+    for (h in 1:length(data_h$breaks)){
+      rect(data_h$breaks[h],0,data_h$breaks[h+1],data_h$density[h],col="grey69")
+    }
+    
+    # Add title with color  
+    title(main=paste0(tit[j]," (D)"),cex.main=1.2)
+    pp<-ci95pp(as.numeric(resu$spearm_test$r))
+    
+    text(-0.49,Ymx-(Ymx*0.05),paste0("Mean = ",round(mean(as.numeric(resu$spearm_test$r)),2)),pos=4,cex=1)
+    text(-0.49,Ymx-(Ymx*0.15),paste0("SD = ",round(sd(as.numeric(resu$spearm_test$r)),2)),pos=4,cex=1)
+    #text(0.02,Ymx-(Ymx*0.05),paste0("CI95 = [",round(quantile(as.numeric(resu$spearm_test$r),c(0.025)),2)," ; ",round(quantile(as.numeric(resu$spearm_test$r),c(0.975)),2),"]"),pos=4,cex=1)
+    text(0.01,Ymx-(Ymx*0.05),pp,pos=4,cex=1)
+    j<-j+1
+  }
+}
+
+for (i in c(1,2)){
+  tit<-c('AM Plants','ECM Plants','NM Plants','ERM Plants','ORM Plants')
+  nm_tax<-c("AM Fungi","ECM Fungi")[i]
+  
+  # Fill the plot with observed data
+  if(i==1){taxa1<-AM}else{taxa1<-EM}
+  j<-1
+  for (tax2 in c('pl_AM','pl_EM','pl_NM','pl_ER','pl_OR')){
+    eval(parse(text=paste("taxa2<-",tax2,sep="")))
+    load(paste0("/Users/aurele/Desktop/test10/data/resu/corr_",i,"_",tax2,"_rec3"))
+    boxco<-ci95(as.numeric(resu$spearm_test$r))
+    data_h<-hist(as.numeric(resu$spearm_test$r),plot=F)
+    
+    data_h$density<-data_h$density/sum(data_h$density)
+    # Defining plot coordinates
+    Xmn<- -0.5 ; Xmx<-0.5 ; rgeX<- 0.25
+    Ymn<-(0); Ymx<-round(max(data_h$density),1)+0.1 ; rgeY<- 0.1
+    seq.plot.y<-seq(Ymn,Ymx,rgeY)
+    seq.plot.x<-seq(Xmn,Xmx,rgeX)
+    nam.plot.x<-seq.plot.x
+    seq.lab.x<-c(Xmn,Xmx)
+    seq.lab.y<-c(Ymn,Ymx)
+    if(tax2 =='pl_AM'){nmX="";nmY="Proportion"; mar=c(2.4,3.5,2,1)}else{nmX="";nmY=""; mar=c(2.4,3.5,2,1)}
+    
+    # Making empty plot   
+    niceplot(limX=seq.lab.x,limY=seq.lab.y, marg=mar,
+             tick=-0.4,   labX=seq.plot.x,labY=seq.plot.y,     nmlabX=nam.plot.x,nmlabY=seq.plot.y,   
+             lasX=1,lasY=1,    lineX=0.5, lineY=0.1,  cexX=0.8, cexY=.8,
+             nmX=nmX,nmY=nmY,   lineXt=-0.1+2.5, lineYt=0.1+2.1,   cexXt=0.8, cexYt=0.8,cex=.31 )    # Add dotted line (lty=3)    
+    segments(0,0,0,Ymx,lty=3,lwd=2)
+    
+    
+    for (h in 1:length(data_h$breaks)){
+      rect(data_h$breaks[h],0,data_h$breaks[h+1],data_h$density[h],col="grey69")
+    }
+    # Add title with color  
+    title(main=paste0(tit[j]," (F)"),cex.main=1.2)
+    pp<-ci95pp(as.numeric(resu$spearm_test$r))
+    
+    text(-0.49,Ymx-(Ymx*0.05),paste0("Mean = ",round(mean(as.numeric(resu$spearm_test$r)),2)),pos=4,cex=1)
+    text(-0.49,Ymx-(Ymx*0.15),paste0("SD = ",round(sd(as.numeric(resu$spearm_test$r)),2)),pos=4,cex=1)
+    #text(0.02,Ymx-(Ymx*0.05),paste0("CI95 = [",round(quantile(as.numeric(resu$spearm_test$r),c(0.025)),2)," ; ",round(quantile(as.numeric(resu$spearm_test$r),c(0.975)),2),"]"),pos=4,cex=1)
+    
+    text(0.01,Ymx-(Ymx*0.05),pp,pos=4,cex=1)
+    j<-j+1
+  }
+}
+niceplot3(limX=c(0,1),limY=c(0,1), marg=c(0,0,0,0),
+          tick=-0.4,   labX=c(),labY=c(),labY2=c(),    nmlabX=c(),nmlabY=c(),nmlabY2=c(),
+          lasX=1,lasY=1,lasY2=1,    lineX=-0.1, lineY=0.1, lineY2=0.1,   cexX=0.9, cexY=0.9, cexY2=0.9,
+          nmX="X",nmY="Y",nmY2="Y2",   lineXt=lineX+2, lineYt=lineY+2.5, lineYt2=lineY2+2.5,   cexXt=1, cexYt=1,cexYt2=1 ,main=c(),cex=.5  )
+
+text(0.5,0.5,"AM", srt=90,cex=5)
+niceplot3(limX=c(0,1),limY=c(0,1), marg=c(0,0,0,0),
+          tick=-0.4,   labX=c(),labY=c(),labY2=c(),    nmlabX=c(),nmlabY=c(),nmlabY2=c(),
+          lasX=1,lasY=1,lasY2=1,    lineX=-0.1, lineY=0.1, lineY2=0.1,   cexX=0.9, cexY=0.9, cexY2=0.9,
+          nmX="X",nmY="Y",nmY2="Y2",   lineXt=lineX+2, lineYt=lineY+2.5, lineYt2=lineY2+2.5,   cexXt=1, cexYt=1,cexYt2=1 ,main=c(),cex=.5  )
+
+text(0.5,0.5,"ECM", srt=90,cex=5)
+dev.off()
