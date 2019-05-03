@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1544519708720.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A18EA0C7",
+    "lastKnownWriteTime" : 1544521529,
+    "last_content_update" : 1544700949088,
+    "path" : "/Volumes/DataPerso/Correl_PlantFish/scriptR_OK/Combine_18.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "286,4",
+        "scrollLine" : "262"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

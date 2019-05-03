@@ -1,0 +1,302 @@
+########################################################
+# Script databases of plants
+# A.Toussaint (PhD)
+# 2018
+rm(list=ls())
+
+#########################################################
+# REQUIRE LIBRARY
+#########################################################
+library(devtools)
+library(iNEXT)
+library(ggplot2)
+library(ade4)
+library(data.table)
+library(sp)
+library(spatialEco)
+library(FD)
+library(StatMatch)
+library(gower)
+#########################################################
+# FUNCTIONS
+#########################################################
+load("/Volumes/DataPerso/biogeo_fungiplant/functions/niceplot")
+source("/Volumes/DataPerso/Correl_PlantFish/Script/melodic_rao.R")
+inext.est=function(tab,lim=10,q=1,nboot=1) {
+  richness.inext=NULL
+  x=as.numeric(tab)
+  inext<-iNEXT(x,endpoint=lim,nboot=nboot,q=q, datatype="abundance")
+  resu<-data.frame(Records=sum(x),SR_obs=inext$AsyEst[1,1],SR_est=inext$AsyEst[1,2],SR_Est_s.e=inext$AsyEst[1,3],SR_95Low=inext$AsyEst[1,4],SR_95Upp=inext$AsyEst[1,5],
+                   Sha_obs=inext$AsyEst[2,1],Sha_est=inext$AsyEst[2,2],Sha_Est_s.e=inext$AsyEst[2,3],Sha_95Low=inext$AsyEst[2,4],Sha_95Upp=inext$AsyEst[2,5],
+                   Sim_obs=inext$AsyEst[3,1],Sim_est=inext$AsyEst[3,2],Sim_Est_s.e=inext$AsyEst[3,3],Sim_95Low=inext$AsyEst[3,4],Sim_95Upp=inext$AsyEst[3,5])
+  return(resu)
+}
+subX<-function(x){
+  rec_bas<-x[,.N,.(BasinName)]
+  sub_20<-x[BasinName %in% as.character(rec_bas[N>20,BasinName]), ]
+  return(sub_20)
+}
+subX_fi<-function(x){
+  rec_bas<-x[,length(Genus.Species),.(BasinName)]
+  sub_20<-x[BasinName %in% as.character(rec_bas[V1>5,BasinName]), ]
+  return(sub_20)
+}
+
+esti_plant<-function(plin,plant,plants_my,lon_all,lat_all,nbt=200){
+  
+  lon_db<-lon_all
+  lat_db<-lat_all
+  
+  if(plin == "all"){
+    plant_bis<-plant
+    plant_sp<-plant_bis
+  }else{
+    tax_sp<-plants_my[which(plants_my$Species %in% plants_my$Species[which(plants_my$categ == plin)]),]$Species
+    plant_bis<-plant[Species%in%tax_sp,]
+    plant_sp<-plant_bis 
+  } 
+  plant_sp<-plant_sp[site%in%names(lon_all),]
+  sitenm<-as.character(unique(plant_sp[,.N,.(site)][which(N>19),]$site))
+  plant_sp<-plant_sp[site%in%sitenm,]
+  
+  
+  # observed record
+  rec_plant<-plant_sp[,.N,.(site)]
+  rec_plant<-as.data.frame(rec_plant) ; rownames(rec_plant)<-rec_plant[,1]
+  
+  # observed richness
+  rich_plant<-plant_sp[,length(unique(Species)),.(site)]
+  rich_plant<-as.data.frame(rich_plant) ; rownames(rich_plant)<-rich_plant[,1]
+  
+  # estimated richness
+  plant_est<-matrix(NA,nr=length(sitenm),nc=19) ; rownames(plant_est)<-sitenm
+  colnames(plant_est)<-c("Records","SR_obs","SR_est","SR_Est_s.e","SR_Est_SD","SR_95Low","SR_95Upp","Sha_obs","Sha_est","Sha_Est_s.e","Sha_Est_SD","Sha_95Low",
+                         "Sha_95Upp","Sim_obs","Sim_est","Sim_Est_s.e","Sim_Est_SD","Sim_95Low","Sim_95Upp")
+  nbt<-nbt
+  i<-1
+  world_mu<-vector("list", nbt)
+  world_mu<-lapply(world_mu,function(x){matrix(NA,nc=1,nr=length(sitenm),dimnames = list(sitenm,"Sha_est"))})
+  for (nmB in sitenm){
+    tab<-t(as.matrix(as.data.frame(plant_sp[site==nmB,.N,c("Species")])  ))
+    tab2<-as.numeric(tab[2,])
+    names(tab2)<-tab[1,]
+    
+    if(length(tab2)>1){
+      bstrp<-NULL
+      for (b in 1:nbt){
+        bstrp<-rbind(bstrp,sample(tab2,length(tab2),replace=T))
+      }
+      
+      bs_exe<-apply(bstrp,1,inext.est)
+      ine_a<-matrix(unlist(bs_exe),ncol=16,nr=nbt,byrow = T)
+      colnames(ine_a)<-colnames(bs_exe[[1]])
+      ine_b<-apply(ine_a,2,mean)
+      plant_est[nmB,names(ine_b)]<-ine_b
+      plant_est[nmB,c("SR_Est_SD","Sha_Est_SD","Sim_Est_SD")]<-apply(ine_a[,c("SR_est","Sha_est","Sim_est")],2,sd)
+      for (k in 1:length(ine_a[,"Sha_est"])){
+        world_mu[[k]][nmB,1]<-ine_a[k,"Sha_est"]
+      }
+    }
+    
+    cat(paste0("\r",round((i/length(sitenm))*100,2)," %\r"))
+    i<-1+i
+  }  
+  
+  # GAM estimated richness
+  nae_db<-cbind(lon=lon_db[sitenm],lat=lat_db[sitenm])
+  nae_db<-nae_db[order(rownames(nae_db)),]
+  nae_db2<-nae_db
+  rownames(nae_db2)<-paste(round(nae_db[,1]),round(nae_db[,2]))
+  
+  ktest<-30
+  for (rd in 1:length(world_mu)){
+    rich.est<-log(world_mu[[rd]])
+    latitu<-lat_db[rownames(rich.est)] 
+    longitu<-lon_db[rownames(rich.est)]
+    wrld<-pred.plot2(rich.est,latitu,longitu,title=NULL,sizeplot=F,matrix=T,k=30,n=100,legend.cex=1)[,3]
+    if(rd==1){world_all_rd=wrld}else{world_all_rd<-cbind(world_all_rd,wrld)}
+  }
+  world_all<-cbind(mean=apply(world_all_rd,1,mean),sd=apply(world_all_rd,1,sd))
+  
+  # Summarize results
+  sites<-cbind(nae_db,records=rec_plant[rownames(nae_db),2],
+               rich.obs=log(plant_est[rownames(nae_db),"SR_obs"]),
+               sr.est=log(plant_est[rownames(nae_db),"SR_est"]),
+               sr.est.sd=log(plant_est[rownames(nae_db),"SR_Est_SD"]),
+               sr.est.se=log(plant_est[rownames(nae_db),"SR_Est_s.e"]),
+               sr.est.cip=log(plant_est[rownames(nae_db),"SR_95Low"]),
+               sr.est.cim=log(plant_est[rownames(nae_db),"SR_95Upp"]),
+               
+               sha.obs=log(plant_est[rownames(nae_db),"Sha_obs"]),
+               rich.est=log(plant_est[rownames(nae_db),"Sha_est"]),
+               rich.est.sd=log(plant_est[rownames(nae_db),"Sha_Est_SD"]),
+               rich.est.se=log(plant_est[rownames(nae_db),"Sha_Est_s.e"]),
+               rich.est.cip=log(plant_est[rownames(nae_db),"Sha_95Low"]),
+               rich.est.cim=log(plant_est[rownames(nae_db),"Sha_95Upp"]),
+               
+               sim.obs=log(plant_est[rownames(nae_db),"Sim_obs"]),
+               rich.sim=log(plant_est[rownames(nae_db),"Sim_est"]),
+               rich.sim.sd=log(plant_est[rownames(nae_db),"Sim_Est_SD"]),
+               rich.sim.se=log(plant_est[rownames(nae_db),"Sim_Est_s.e"]),
+               rich.sim.cip=log(plant_est[rownames(nae_db),"Sim_95Low"]),
+               rich.sim.cim=log(plant_est[rownames(nae_db),"Sim_95Upp"]),
+               
+               rich.gam=world_all[rownames(nae_db),1],
+               rich.gam.sd=world_all[rownames(nae_db),2]) 
+  
+  rownames(sites)<-rownames(nae_db)
+  print(plin)
+  return(sites)
+}  
+
+
+calc.FD.tax<-function(fish_sp,plants_sp,fungi_sp,do_fish=T,do_plant=T,do_fungi=T){
+  fish_sam<-fish_sp
+  plants_sam<-plants_sp
+  fungi_sam<-fungi_sp
+
+  if (do_fish==T){
+    fish_ab<-matrix(rep(1,nrow(fish_sam)),nr=1,nc=nrow(fish_sam))
+    colnames(fish_ab)<-t(as.data.frame(fish_sam[,"Genus.Species"]))
+    #traits
+    FD_fish_tr<-melodic.rao(fish_ab,fish_mat,abundance.weighted=F)
+    fish_tr<-c(ncol(fish_ab),FD_fish_tr)
+    names(fish_tr)<-c("NbSp","MPD","SIM")
+    #groups
+    for (gr in 1:5){
+      eval(parse(text=paste('FD_fish_gr<-melodic.rao(fish_ab,as.matrix(fish_mat_',gr,'gr),abundance.weighted=F)',sep='') ))
+      eval(parse(text=paste0("fish",gr,"gr<-c(ncol(fish_ab),FD_fish_gr)") ))
+      eval(parse(text=paste0("names(fish",gr,"gr)<-c('NbSp','MPD','SIM')") ))
+    }  
+  }else{
+    fish_tr<-rep("NC",3)
+    names(fish_tr)<-c("NbSp","MPD","SIM")
+    for (gr in 1:7){
+      eval(parse(text=paste0("fish",gr,"gr<-fish_tr") ))
+    }
+  }
+  
+  if (do_fungi==T){
+    rec<-fungi_sam[,.N,.(Fungal_species,New.Guild)]
+    fungi_ab<-t(as.data.frame(rec[,"N"]))
+    colnames(fungi_ab)<-t(as.data.frame(rec)[,"Fungal_species"])
+    fungi_tr<-factor(t(as.data.frame(rec[,c("New.Guild")])))
+    names(fungi_tr)<-colnames(fungi_ab)
+    abX<-fungi_ab[,names(na.omit(fungi_tr))]
+    gower_mat_fun <- gower.dist(fungi_tr)
+    FD_fungi_tr<-melodic.rao(t(abX),gower_mat_fun,abundance.weighted=F)
+    fungi_gr<-c(length(abX),FD_fungi_tr)
+    names(fungi_gr)<-c("NbSp","MPD","SIM")
+  }else{
+    fungi_gr<-rep("NC",3)
+    names(fungi_gr)<-c("NbSp","MPD","SIM")
+  }
+  
+  if(do_plant==T){
+    rec<-na.omit(plants_sam[,.N,.(scientificName,grp)])
+    plants_ab<-t(as.data.frame(rec[,"N"]))
+    colnames(plants_ab)<-t(as.data.frame(rec[,"scientificName"])) 
+    plants_grp<-as.data.frame(rec[,c("grp")])
+    rownames(plants_grp)<-rec$scientificName
+    nbsp_plants<-nrow(plants_grp)
+    gower_mat_fun <- as.matrix(gower.dist(factor(plants_grp[,1])))
+    colnames(gower_mat_fun)<-rownames(gower_mat_fun)<-rec$scientificName
+    FD_plants_gr<-melodic.rao(plants_ab,gower_mat_fun,abundance.weighted=F)
+    plant_gr<-c(nbsp_plants,FD_plants_gr)
+    names(plant_gr)<-c("NbSp","MPD","SIM")
+  }else{
+    plant_gr<-rep("NC",3)
+    names(plant_gr)<-c("NbSp","MPD","SIM")
+  }
+  resu_b<-matrix(rbind(fish_tr,fish1gr,fish2gr,fish3gr,fish4gr,fish5gr,plant_gr,fungi_gr),
+                 ncol=3,nr=8,dimnames=list(c("fish_tr",paste0("fish",1:5,"gr"),"plant_gr","fungi_gr"),c("NbSp","MPD","SIM")))
+  return(resu_b)
+} 
+#########################################################
+# Data
+#########################################################
+plant<-fread("/Volumes/DataPerso/Correl_PlantFish/scriptR_OK/data/plants_18.csv",verbose=T)
+fungi<-fread("/Volumes/DataPerso/Correl_PlantFish/scriptR_OK/data/fungi_18.csv",verbose=T)
+fish<-fread("/Volumes/DataPerso/Correl_PlantFish/scriptR_OK/data/fish_18.csv",verbose=T)
+
+# Subselection of river basin with 20 or more records
+plant_20<-subX(plant)
+fungi_20<-subX(fungi)
+fish_20<-subX_fi(fish)
+
+# Combine basin
+bas_all<-intersect(unique(plant_20$BasinName),unique(fungi_20$BasinName))
+bas_all<-intersect(bas_all,unique(fish_20$BasinName))
+
+# Estimation of the species richness for plants and fungi
+
+# Estimation of the functional diversity
+plant_sub<-plant_20[BasinName%in%bas_all,]
+fungi_sub<-fungi_20[BasinName%in%bas_all,]
+fish_sub<-fish_20[BasinName%in%bas_all,]
+
+fish_uq<-unique(fish[,-c(1,18)])
+dist_fish<-dist(as.data.frame(fish_uq)[,c(7:11)])
+gow_fish<-gower.dist(scale(as.data.frame(fish_uq)[,c(7:11)]))
+names(gow_fish)<-as.data.frame(fish_uq)[,'Genus.Species']
+fish_mat<-as.matrix(gow_fish)
+colnames(fish_mat)<-rownames(fish_mat)<-as.data.frame(fish_uq)[,'Genus.Species']
+
+gr<-1
+for (gr in 1:5){
+  gower.mat <- gower.dist(factor(as.data.frame(fish_uq)[,(11+gr)]))
+  colnames(gower.mat)<-rownames(gower.mat)<-as.data.frame(fish_uq)[,'Genus.Species']
+  gower.mat<-as.dist(gower.mat)
+  eval(parse(text=paste('fish_mat_',gr,'gr<-gower.mat',sep='')))
+}
+
+nboot<-1000
+nm_bas<-as.data.frame(plant_sub[,.N,BasinName])
+nm_basOK<-nm_bas[sort.list(nm_bas[,2],decreasing = F),1]
+for (basi in nm_basOK){
+  if(!(paste0(basi,".RData") %in% list.files(path="/Volumes/DataPerso/Correl_PlantFish/data/bootstrap_res"))){
+    t_deb<-Sys.time()
+    cat(paste0(basi," start at: ",t_deb,"\n"))
+    fish_sp<-fish_sub[BasinName==basi,]
+    plants_sp<-plant_sub[BasinName==basi,]
+    fungi_sp<-fungi_sub[BasinName==basi,]
+    
+    obs<-calc.FD.tax(fish_sp,plants_sp,fungi_sp,do_fish=T,do_plant=T,do_fungi=T)
+    
+    nb_tours <- nboot
+    p_b <- txtProgressBar(min = 1, max = nb_tours, style = 3)
+    rd_mat_MPD<-matrix(NA,ncol=nboot,nr=2,dimnames=list(c("plant_gr","fungi_gr"),paste0("Boot",1:nboot)))
+    rd_mat_SIM<-rd_mat_MPD
+    for(nb in 1:nboot){
+      fish_sp_rd<-fish_sp
+      plants_sp_rd<-plants_sp[sample(1:nrow(plants_sp),replace=T),]
+      fungi_sp_rd<-fungi_sp[sample(1:nrow(fungi_sp),replace=T),]
+      rd<-calc.FD.tax(fish_sp_rd,plants_sp_rd,fungi_sp_rd,do_fish=F,do_plant=T,do_fungi=T)
+      rd_mat_MPD[,nb]<-rd[c(7,8),2]
+      rd_mat_SIM[,nb]<-rd[c(7,8),3]
+      setTxtProgressBar(p_b, nb)
+    }
+    rd_mat_MPD_t<-rbind(as.numeric(rd_mat_MPD[1,]),as.numeric(rd_mat_MPD[2,]))
+    rd_mat_SIM_t<-rbind(as.numeric(rd_mat_SIM[1,]),as.numeric(rd_mat_SIM[2,]))
+    
+    resu_b<-obs
+    resu_MPD<-rd_mat_MPD_t ; rownames(resu_MPD)<-c("plant_gr","fungi_gr") ; colnames(resu_MPD)<-paste0("Boot",1:nboot)
+    resu_SIM<-rd_mat_SIM_t ; rownames(resu_SIM)<-c("plant_gr","fungi_gr") ; colnames(resu_SIM)<-paste0("Boot",1:nboot)
+    
+    res_all<-list(resu_b,resu_MPD,resu_SIM)
+    
+    save(res_all,file=paste0("/Volumes/DataPerso/Correl_PlantFish/data/bootstrap_res/",basi,".RData"))
+    cat(paste0(basi,"(",round((which(nm_bas == basi)/length(nm_bas))*100,2),"%) duration: ",round(Sys.time()-t_deb,4),"\n"))
+  }
+}
+
+glob_res<-list()
+for (i in 1:10){
+  glob_res[[i]]<-matrix(unlist(lapply(resu_b,function(x){x[i,]})),ncol=5,nrow=1210,byrow=T)
+  row.names(glob_res[[i]])<-rownames(summary(resu_b))
+  colnames(glob_res[[i]])<-colnames(resu_b$Dvina)
+}
+
+names(glob_res)<-c("fish_tr",paste0("fish",1:7,"gr"),"plant_gr","fungi_gr")
+save(glob_res,file="/Volumes/DataPerso/Correl_PlantFish/data/Findex_3tax_bas_OK.R")
+
