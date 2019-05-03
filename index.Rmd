@@ -11,7 +11,7 @@ output:
 
 <img src="data/AT_pic.jpg" style="width:30%; border:5px solid; margin-right: 20px" align="right">
 
-# Research
+# Research interest
 
 I like to analyze data to answer research questions and test hypotheses. Currently I investigate questions related to global correlation between functional and taxonomic diversity of distant groups (fishes, plants and fungi) at [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecology workgroup under the direction of [Pr. Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel). 
 
