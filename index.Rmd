@@ -38,6 +38,10 @@ My full CV is available [here](data/CV_Toussaint.pdf).
 
 The below publications represent my work to date. A full list of publications is available in [Google scholar](https://scholar.google.fr/citations?user=oTxWHKgAAAAJ&hl=fr) and [ResearchGate](https://www.researchgate.net/profile/Aurele_Toussaint).
 
+## 2019
+
+**Toussaint A.**, Bueno G., Davison J., Moora M., Tedersoo L., Zobel M., Opik M. & Partel M. *Journal of Vegetation Science*, in press. [pdf](data/2019_Toussaint_JVS.pdf)
+
 ## 2018
 
 **Toussaint A.**, Charpin N., Beauchard O., Grenouillet G., Oberdorff T., Tedesco P.A., Villéger S. & Brosse S. Non-native species led to marked shifts in functional diversity of the world freshwater fish faunas. *Ecology Letters*, 21(11), 1649-1659. [pdf](data/2018_Toussaint_Ecolet.pdf), [press release CNRS](http://www.cnrs.fr/inee/communication/breves/b405.html), [press release IRD](http://www.ird.fr/toute-l-actualite/actualites-scientifiques/la-biodiversite-des-poissons-d-eau-douce-bouleversee) in french and [blog](https://ecolchange.wordpress.com/2018/10/11/new-publication-non-native-species-led-to-marked-shifts-in-functional-diversity-of-the-world-freshwater-fish-faunas/) in English. [Supplementary](data/ele13141-sup-0001-suppinfo.docx)
