@@ -21,7 +21,9 @@ I am a well-known R enthusiast, including performing high levels graphics and da
 
 # Curriculum Vitae
 
-Current position: **Research Fellow** supported by *the Estonian Research Concil (MOBJD-276)*
+**ORCID** [0000-0002-5738-4637](https://orcid.org/0000-0002-5738-4637) 
+
+**Research Fellow** supported by *the Estonian Research Concil (MOBJD-276)*
 
 Institute of Ecology and Earth Sciences
 
@@ -32,7 +34,11 @@ University of Tartu
 Estonia
 
 
-My full CV is available [here](data/CV_Toussaint.pdf).
+Full CV available [here](data/CV_Toussaint.pdf).
+
+Mendeley [here](https://www.mendeley.com/profiles/aurele-toussaint/) 
+
+ResearchGate [here](https://www.researchgate.net/profile/Aurele_Toussaint)
 
 # Publications
 
