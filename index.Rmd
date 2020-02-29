@@ -19,11 +19,15 @@ I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a 
 
 I am a well-known R enthusiast, including performing high levels graphics and data mining.
 
+# PhD offer
+
+[PhD in fish ecology](data/PhD_offer_2020.pdf) starting Sept 2020 (4 years).
+
 # Curriculum Vitae
 
 **ORCID** [0000-0002-5738-4637](https://orcid.org/0000-0002-5738-4637) 
 
-**Research Fellow** supported by *the Estonian Research Concil (MOBJD-276)*
+**Research Fellow** supported by *the Estonian Research Concil (PSG-505)*
 
 Institute of Ecology and Earth Sciences
 
@@ -39,6 +43,10 @@ Full CV available [here](data/CV_Toussaint.pdf).
 Mendeley [here](https://www.mendeley.com/profiles/aurele-toussaint/) 
 
 ResearchGate [here](https://www.researchgate.net/profile/Aurele_Toussaint)
+
+# Previous grants
+
+**Post-doctoral Fellow** supported by *the Estonian Research Concil (MOBJD-276)* [here](https://app.dimensions.ai/details/grant/grant.7070239)
 
 # Publications
 
