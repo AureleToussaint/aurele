@@ -1,10 +1,12 @@
-name: "Aurèle Toussaint"
+name: "Aurele Toussaint"
 output_dir: "."
 navbar:
-  title: "Aurèle Toussaint"
+  title: "Aurele Toussaint"
   left:
     - text: "Data & Scripts"
       href: software.html
+    - text: "Blog"
+      href: blogPerso.html
     - text: "Keywords"
       href: blog.html      
   right:

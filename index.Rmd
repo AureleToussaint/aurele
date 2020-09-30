@@ -1,5 +1,5 @@
 ---
-title: ""
+title: "Aurele Toussaint"
 fontsize: 14pt
 output:
   html_document: 
@@ -13,21 +13,21 @@ output:
 
 # Research interest
 
-I like to analyze data to answer research questions and test hypotheses. Currently I investigate questions related to global correlation between functional and taxonomic diversity of distant groups (fishes, plants and fungi) at [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecology workgroup under the direction of [Pr. Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel). 
+I like to analyze data to answer research questions and test hypotheses. Currently I investigate questions related to functional diversity of vertebrates and plants in a context of biodiversity loss at [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecology workgroup with [Pr. Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel) and [Dr. Carlos P. Carmona](https://www.botany.ut.ee/macroecology/en/carmona). 
 
 I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I began working toward my PhD in macroecology as a PhD-student at [EDB-lab](www.edb.ups-tlse.fr), where I am investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr/) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
 
 I am a well-known R enthusiast, including performing high levels graphics and data mining.
 
-# PhD offer
+# PhD/Post-doc offers
 
-[PhD in fish ecology](data/PhD_offer_2020.pdf) starting Sept 2020 (4 years).
+If you are interesting by Macroecology, Functional Diversity, Threatened species, contact us.
 
 # Curriculum Vitae
 
 **ORCID** [0000-0002-5738-4637](https://orcid.org/0000-0002-5738-4637) 
 
-**Research Fellow** supported by *the Estonian Research Concil (PSG-505)*
+**Research Fellow** supported by *the Estonian Research Concil (PSG-505)* [here](https://app.dimensions.ai/details/grant/grant.8855456)
 
 Institute of Ecology and Earth Sciences
 
@@ -52,9 +52,13 @@ ResearchGate [here](https://www.researchgate.net/profile/Aurele_Toussaint)
 
 The below publications represent my work to date. A full list of publications is available in [Google scholar](https://scholar.google.fr/citations?user=oTxWHKgAAAAJ&hl=fr) and [ResearchGate](https://www.researchgate.net/profile/Aurele_Toussaint).
 
-## 2019
+## 2020
 
-**Toussaint A.**, Bueno G., Davison J., Moora M., Tedersoo L., Zobel M., Opik M. & Partel M. *Journal of Vegetation Science*, in press. [pdf](data/2019_Toussaint_JVS.pdf)
+Carmona C.P., Tamme R., Partel M., de Bello F., Brosse S., Capdevila P., Gonzalez-M R., Gonzalez-Suarez M., Salguero-Gomez R., Vasquez-Valderrama M., **Toussaint A.**, Mapping extinction risk in the global functional spectra across the tree of life, *bioRxiv*, doi: https://doi.org/10.1101/2020.06.29.179143  [pdf](https://www.biorxiv.org/content/10.1101/2020.06.29.179143v1.abstract)
+
+Derezal, O., Mondy P.C., Dembski S., Kreutzenberger K., Reyjol Y., Chanderis A., Valette L., Brosse S., **Toussaint A.**, Beillard J., Merg M.L., Usseglio-Polatera P., A diagnostic-based approach to assess specific risks of river degradation in a multiple pressure context: Insights from fish communities. *Science of The Total Environment*, 734, 139467 [pdf](data/2020_Derezal_et_al_STOTEN.pdf)
+
+**Toussaint A.**, Bueno C.G., Davison J., Moora M., Tedersoo L., Zobel M., Opik M. & Partel M., Asymmetric patterns of global diversity among plants and mycorrhizal fungi *Journal of Vegetation Science*, 31(2), 355-366 [pdf](data/2019_Toussaint_JVS.pdf)
 
 ## 2018
 
@@ -70,7 +74,6 @@ Tedersoo L., Laanisto L., Rahimlou S., **Toussaint A.**, Hallikma T., Pärtel M.
 
 **Toussaint A.**, Beauchard O., Oberdorff T., Brosse S. & Villeger S. Worldwide freshwater fish homogenization is driven by a few widespread non-native species. *Biological Invasions*, 18, 1295–1304. [pdf](data/2016_Toussaint_BiologicalInvasions.pdf)
 
-
 ## 2015
 
 Allard L., **Toussaint A.**, Vigouroux R. & Brosse S. Length-weight relationship of 58 fish species in streams of French Guiana. *Journal of Applied Ichthyology*, 31, 567-570. [pdf](data/2016_Toussaint_BiologicalInvasions.pdf)
@@ -81,6 +84,8 @@ Allard L., **Toussaint A.**, Vigouroux R. & Brosse S. Length-weight relationship
 
 
 # Communication
+
+2020 Annual meeting for macroecology of the ecological society of Germany Austria and Switzerland, Konstanz, Germany: *Mapping extinction risk in the global functional spectra across the tree of life*
 
 2018 Annual meeting for macroecology of the ecological society of Germany Austria and Switzerland, Birmendorf, Switzerland: *Global mismatch between the species richness of vascular plants and symbiosis fungi*
 
