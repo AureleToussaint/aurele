@@ -3,11 +3,11 @@ output_dir: "."
 navbar:
   title: "Aurele Toussaint"
   left:
-    - text: "Data & Scripts"
-      href: software.html
     - text: "Projects"
       href: blogPerso.html
-    - text: "Keywords"
+    - text: "Data & Scripts"
+      href: software.html
+    - text: "Blog"
       href: blog.html      
   right:
     - icon: fa-envelope fa-lg

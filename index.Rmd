@@ -1,5 +1,5 @@
 ---
-title: "Aurele Toussaint"
+title: ""
 fontsize: 14pt
 output:
   html_document: 
@@ -9,46 +9,48 @@ output:
 
 <link rel="stylesheet" href="styles.css" type="text/css">
 
-<img src="data/AT_pic.jpg" style="width:30%; border:5px solid; margin-right: 20px" align="right">
+<img src="data/wordcloud.png" style="width:85%; border:1px; margin-right: 1px" align="center"> 
 
-# Research interest
+My main research interest is investigating questions related to functional diversity of vertebrates and plants in a context of global change. I am currently a research fellow at the [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecology workgroup with [Pr. Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel) and [Dr. Carlos P. Carmona](https://www.botany.ut.ee/macroecology/en/carmona). 
 
-I like to analyze data to answer research questions and test hypotheses. Currently I investigate questions related to functional diversity of vertebrates and plants in a context of biodiversity loss at [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecology workgroup with [Pr. Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel) and [Dr. Carlos P. Carmona](https://www.botany.ut.ee/macroecology/en/carmona). 
+I am also involved in different [projects](https://aureletoussaint.github.io/aurele/blogPerso.html).
 
-I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I began working toward my PhD in macroecology as a PhD-student at [EDB-lab](www.edb.ups-tlse.fr), where I am investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr/) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
+I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I started working toward my PhD in macroecology as a PhD-student at [EDB-lab](www.edb.ups-tlse.fr), where I am investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr/) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
 
 I am a well-known R enthusiast, including performing high levels graphics and data mining.
 
-# PhD/Post-doc offers
+<h2 align="left"><b>Professional address</b></h2>
+Institute of Ecology and Earth Sciences  
+University of Tartu  
+Estonia  
+
+Email:toussaint.aurele@ut.ee  
+
+<h2 align="left"><b>PhD/Post-doc offers</b></h2>
 
 If you are interesting by Macroecology, Functional Diversity, Threatened species, contact us.
 
-# Curriculum Vitae
+<br>
+<br>
+<h1 align="center"><b>Curriculum Vitae</b></h1>
 
 **ORCID** [0000-0002-5738-4637](https://orcid.org/0000-0002-5738-4637) 
 
+<h3 align="left"><b>Current position</b></h3>
+
 **Research Fellow** supported by *the Estonian Research Concil (PSG-505)* [here](https://app.dimensions.ai/details/grant/grant.8855456)
 
-Institute of Ecology and Earth Sciences
+Full CV available [here](data/CV_Toussaint.pdf)<br>
+Mendeley [here](https://www.mendeley.com/profiles/aurele-toussaint/)<br>
+ResearchGate [here](https://www.researchgate.net/profile/Aurele_Toussaint)<br>
 
-Departement of Botany 
-
-University of Tartu 
-
-Estonia
-
-
-Full CV available [here](data/CV_Toussaint.pdf).
-
-Mendeley [here](https://www.mendeley.com/profiles/aurele-toussaint/) 
-
-ResearchGate [here](https://www.researchgate.net/profile/Aurele_Toussaint)
-
-# Previous grants
+<h3 align="left"><b>Previous grants</b></h3>
 
 **Post-doctoral Fellow** supported by *the Estonian Research Concil (MOBJD-276)* [here](https://app.dimensions.ai/details/grant/grant.7070239)
 
-# Publications
+**Erasmus MUNDUS** with the [Kyung Hee University](https://www.khu.ac.kr/eng/main/index.do), Seoul (Korea)
+
+<h1 align="center"><b>Publications</b></h1>
 
 The below publications represent my work to date. A full list of publications is available in [Google scholar](https://scholar.google.fr/citations?user=oTxWHKgAAAAJ&hl=fr) and [ResearchGate](https://www.researchgate.net/profile/Aurele_Toussaint).
 
@@ -83,7 +85,7 @@ Allard L., **Toussaint A.**, Vigouroux R. & Brosse S. Length-weight relationship
 **Toussaint A.**, Beauchard O., Oberdorff T., Brosse S., Villéger S. Historical assemblage distinctiveness and the introduction of widespread non-native species explain worldwide changes in freshwater fish taxonomic dissimilarity. *Global Ecology and Biogeography*, 23, 574–584. [pdf](data/2014_Toussaint et al._GEB.pdf) and [press release](https://www.cnrs.fr/occitanie-ouest/CNRS-Hebdo/Actualites/18686/Suite.aspx) [Supplementary1](data/geb12141-sup-0001-si.doc); [Supplementary2](data/geb12141-sup-0002-si.doc)
 
 
-# Communication
+<h1 align="center"><b>Communication</b></h1>
 
 2020 Annual meeting for macroecology of the ecological society of Germany Austria and Switzerland, Konstanz, Germany: *Mapping extinction risk in the global functional spectra across the tree of life*
 
@@ -99,7 +101,7 @@ Allard L., **Toussaint A.**, Vigouroux R. & Brosse S. Length-weight relationship
 
 2013 8th Symposium for European freshwater sciences, Munster, Germany: *Historical assemblage distinctiveness and the introduction of widespread non-native species explain worldwide changes in freshwater fish taxonomic dissimilarity*
 
-# PhD Thesis
+<h1 align="center"><b>PhD Thesis</b></h1>
 
 During my PhD, I investigated functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/).
 
