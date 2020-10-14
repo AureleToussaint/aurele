@@ -13,7 +13,7 @@ My main research interest is investigating questions related to functional diver
 
 I am also involved in different [projects](https://aureletoussaint.github.io/aurele/blogPerso.html).
 
-I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I started working toward my PhD in macroecology as a PhD-student at [EDB-lab](www.edb.ups-tlse.fr), where I am investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr/) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
+I graduated from the [University of Toulouse](http://www.univ-tlse3.fr/) with a MS in biostatistics in 2012. In 2012 I started my PhD in macroecology at [EDB-lab](www.edb.ups-tlse.fr), where I was investigating functional diversity of freshwater fishes at the world scale under the advisement of [Pr. Sébastien Brosse](http://brosse.sebastien.free.fr/) and [Dr. Sébastien Villéger](http://villeger.sebastien.free.fr/) 
 
 I am a well-known R enthusiast, including performing high levels graphics and data mining.
 
