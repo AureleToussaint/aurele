@@ -57,7 +57,7 @@
 <br>
 <br>
 
-<h2 align="right"><b>GIS application for conservation</b></h2>
+<left><b><font size="+4">GIS application for conservation</font></b></left>
 <img src="data/GIS.png" style="width:50%; border:1px; margin-right: 1px" align="right">  
 <br>
 <left> <font size="+2">The objectives is to evaluate the status of the grassland in Estonia. This project was realized under the supervision of [Dr. Aveliina Helm](https://landscape.ut.ee/people/aveliina-helm/?lang=en). My main task was developing GIS and R algorithms for conservation prioritization maps. I also developed algorithms for [Zonation software](https://www.syke.fi/en-US/Research__Development/Nature/Specialist_work/Zonation_in_Finland/Zonation_software).</font> </left>    
