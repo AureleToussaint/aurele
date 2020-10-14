@@ -3,7 +3,8 @@
 <link rel="stylesheet" href="styles.css" type="text/css">
 
 <br>
-<h2 align="left"><b><font size="+2">Method comparison</font></b></h2>
+<left><b><font size="+4">Method comparison</font></b></left>
+<br>
 <br>
 <img src="data/world.png" style="width:50%; border:1px; margin-right: 1px" align="left">  
 <br>
@@ -20,7 +21,8 @@
 <br>
 <br>
 
-<h2 align="right"><b><font size="+2">Global Functional Diversity</font></b></h2>
+<right><b><font size="+4">Global Functional Diversity</font></b></right>
+<br>
 <br>
 <img src="data/glob.jpg" style="width:55%; border:1px; margin-right: 1px" align="right">  
 <br>
@@ -36,11 +38,8 @@
 <br>
 <br>
 <br>
-<br>
-<br>
-<br>
 
-<h2 align="left"><b>Cross-taxonomic diversity</b></h2>
+<left><b><font size="+4">Cross-taxonomic diversity</font></b></left>
 <img src="data/crossTaxa.png" style="width:50%; border:1px; margin-right: 1px" align="left">  
 <br>
 <right> <font size="+2">The objective of this project is to study the taxonomic and functional diversities patterns of taxonomic groups representing contrasting ecosystems type and determine their congruence at global and biogeographical realm scales. </font></right> 
