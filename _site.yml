@@ -6,9 +6,9 @@ navbar:
       icon: fa-home
       href: index.html
     - text: "Projects"
-      href: blogPerso.html
+      href: Projects.html
     - text: "Data & Scripts"
-      href: software.html
+      href: Rdata.html
     - text: "My blog"
       href: https://aureletoussaint.github.io/blog 
   right:

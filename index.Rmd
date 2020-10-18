@@ -1,13 +1,17 @@
 ---
 title: ""
+pagetitle: "Home"
 fontsize: 14pt
 output:
   html_document: 
     toc: true
     toc_float: true
 ---
+<title>Home</title>
+<link rel="shortcut icon" href="data/imageTitle.png" type="image/png">
 
 <link rel="stylesheet" href="styles.css" type="text/css">
+
 
 My main research interest is investigating questions related to functional diversity of vertebrates and plants in a context of global change. I am currently a research fellow at the [University of Tartu](https://www.botany.ut.ee/macroecology/en/) in the Macroecology workgroup with [Pr. Meelis Pärtel](https://www.botany.ut.ee/macroecology/en/partel) and [Dr. Carlos P. Carmona](https://www.botany.ut.ee/macroecology/en/carmona). 
 
