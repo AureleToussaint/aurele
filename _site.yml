@@ -7,9 +7,9 @@ navbar:
       href: blogPerso.html
     - text: "Data & Scripts"
       href: software.html
-    - text: "My blog"
-      href: https://aureletoussaint.github.io/blog     
   right:
+    - text: "My blog"
+      href: https://aureletoussaint.github.io/blog 
     - icon: fa-envelope fa-lg
       href: contact.html
     - icon: fa-github fa-lg
