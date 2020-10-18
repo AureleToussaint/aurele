@@ -8,7 +8,7 @@ navbar:
     - text: "Projects"
       href: Projects.html
     - text: "Data & Scripts"
-      href: Rdata.html
+      href: RData.html
     - text: "My blog"
       href: https://aureletoussaint.github.io/blog 
   right:
