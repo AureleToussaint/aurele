@@ -11,8 +11,7 @@
 
 
 
-<title>Aurele Toussaint</title>
-<link rel="shortcut icon" href="data/imageTitle.png">
+<title>index.utf8</title>
 
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -28,6 +27,15 @@
 <script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
 <link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
 <link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+      </style>
 
 <style type="text/css">code{white-space: pre;}</style>
 <style type="text/css">
@@ -347,18 +355,25 @@ div.tocify {
         <span class="icon-bar"></span>
         <span class="icon-bar"></span>
       </button>
-      <a class="navbar-brand" href="index.html">Aurele Toussaint</a>
+      <a class="navbar-brand" href="index.html"></a>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <ul class="nav navbar-nav">
         <li>
+  <a href="index.html">
+    <span class="fa fa-home"></span>
+     
+    
+  </a>
+</li>
+<li>
   <a href="blogPerso.html">Projects</a>
 </li>
 <li>
   <a href="software.html">Data &amp; Scripts</a>
 </li>
 <li>
-  <a href="blog.html">Blog</a>
+  <a href="https://aureletoussaint.github.io/blog">My blog</a>
 </li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
@@ -434,8 +449,6 @@ If you are interesting by Macroecology, Functional Diversity, Threatened species
 </h1>
 <p>The below publications represent my work to date. A full list of publications is available in <a href="https://scholar.google.fr/citations?user=oTxWHKgAAAAJ&amp;hl=fr">Google scholar</a> and <a href="https://www.researchgate.net/profile/Aurele_Toussaint">ResearchGate</a>.</p>
 <div id="section" class="section level2">
-<h2>2021</h2>
-<p><br><br></p>
 <h2>2020</h2>
 <p>Carmona C.P., Tamme R., Partel M., de Bello F., Brosse S., Capdevila P., Gonzalez-M R., Gonzalez-Suarez M., Salguero-Gomez R., Vasquez-Valderrama M., <strong>Toussaint A.</strong>, Mapping extinction risk in the global functional spectra across the tree of life, <em>bioRxiv</em>, doi: <a href="https://doi.org/10.1101/2020.06.29.179143" class="uri">https://doi.org/10.1101/2020.06.29.179143</a> <a href="https://www.biorxiv.org/content/10.1101/2020.06.29.179143v1.abstract">pdf</a></p>
 <p>Derezal, O., Mondy P.C., Dembski S., Kreutzenberger K., Reyjol Y., Chanderis A., Valette L., Brosse S., <strong>Toussaint A.</strong>, Beillard J., Merg M.L., Usseglio-Polatera P., A diagnostic-based approach to assess specific risks of river degradation in a multiple pressure context: Insights from fish communities. <em>Science of The Total Environment</em>, 734, 139467 <a href="data/2020_Derezal_et_al_STOTEN.pdf">pdf</a></p>
@@ -531,7 +544,7 @@ $(document).ready(function ()  {
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
-        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
       },
       ignoreSelector: ".toc-ignore",
       scrollTo: 0

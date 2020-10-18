@@ -2,7 +2,7 @@ name: "Aurele Toussaint"
 output_dir: "."
 navbar:
   left:
-    - text: "Home"
+    - text: ""
       icon: fa-home
       href: index.html
     - text: "Projects"
