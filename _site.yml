@@ -1,8 +1,10 @@
 name: "Aurele Toussaint"
 output_dir: "."
 navbar:
-  title: "Aurele Toussaint"
   left:
+    - text: "Home"
+      icon: fa-home
+      href: index.html
     - text: "Projects"
       href: blogPerso.html
     - text: "Data & Scripts"
