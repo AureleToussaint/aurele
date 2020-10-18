@@ -7,13 +7,17 @@ navbar:
       href: blogPerso.html
     - text: "Data & Scripts"
       href: software.html
-  right:
     - text: "My blog"
       href: https://aureletoussaint.github.io/blog 
+  right:
     - icon: fa-envelope fa-lg
       href: contact.html
     - icon: fa-github fa-lg
       href: https://github.com/AureleToussaint
+    - icon: fa-twitter fa-lg
+      href: https://twitter.com/ToussaintAurele
+    - icon: fa-linkedin fa-lg
+      href: https://www.linkedin.com/in/atoussaint/
 output:
   html_document:
     theme: cosmo
